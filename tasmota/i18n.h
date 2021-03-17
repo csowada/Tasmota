@@ -622,6 +622,9 @@
 #define D_CMND_ZIGBEE_SCAN "Scan"
   #define D_JSON_ZIGBEE_SCAN "ZbScan"
 
+#define D_CMND_ZIGBEE_APS_PAIR "ApsPair"
+  #define D_JSON_ZIGBEE_APS_PAIR "Id"
+
 // Commands xdrv_25_A4988_Stepper.ino
 #define D_CMND_MOTOR "MOTOR"
 #define D_JSON_MOTOR_MOVE "doMove"

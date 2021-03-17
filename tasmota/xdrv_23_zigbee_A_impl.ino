@@ -39,7 +39,8 @@ const char kZbCommands[] PROGMEM = D_PRFX_ZB "|"    // prefix
   D_CMND_ZIGBEE_BIND "|" D_CMND_ZIGBEE_UNBIND "|" D_CMND_ZIGBEE_PING "|" D_CMND_ZIGBEE_MODELID "|"
   D_CMND_ZIGBEE_LIGHT "|" D_CMND_ZIGBEE_OCCUPANCY "|"
   D_CMND_ZIGBEE_RESTORE "|" D_CMND_ZIGBEE_BIND_STATE "|" D_CMND_ZIGBEE_MAP "|" D_CMND_ZIGBEE_LEAVE "|"
-  D_CMND_ZIGBEE_CONFIG "|" D_CMND_ZIGBEE_DATA "|" D_CMND_ZIGBEE_SCAN
+  D_CMND_ZIGBEE_CONFIG "|" D_CMND_ZIGBEE_DATA "|" D_CMND_ZIGBEE_SCAN "|"
+  D_CMND_ZIGBEE_APS_PAIR
   ;
 
 SO_SYNONYMS(kZbSynonyms,
@@ -61,6 +62,7 @@ void (* const ZigbeeCommand[])(void) PROGMEM = {
   &CmndZbLight, &CmndZbOccupancy,
   &CmndZbRestore, &CmndZbBindState, &CmndZbMap, CmndZbLeave,
   &CmndZbConfig, &CmndZbData, &CmndZbScan,
+  &CmndZbApsPair
   };
 
 /********************************************************************************************/
@@ -1591,6 +1593,28 @@ void CmndZbData(void) {
       hibernateDeviceData(device, true);    // mqtt
     }
   }
+
+  ResponseCmndDone();
+}
+
+void CmndZbApsPair(void) {
+
+  AddLog_P(LOG_LEVEL_INFO, PSTR("Hello my own command!"));
+
+  // ZbApsPair {"Id":"0xCCCCCCCCCCCCCCCC"}
+  RemoveSpace(XdrvMailbox.data);
+  if (strlen(XdrvMailbox.data) > 0) {
+    JsonParser parser(XdrvMailbox.data);
+    JsonParserObject root = parser.getRootObject();
+    if (!root) { ResponseCmndChar_P(PSTR(D_JSON_INVALID_JSON)); return; }
+
+    uint64_t    zb_ext_panid   = Settings.zb_ext_panid;
+    zb_ext_panid    = root.getULong(PSTR("Id"), zb_ext_panid);
+
+    AddLog_P(LOG_LEVEL_INFO, PSTR(D_LOG_ZIGBEE D_ZIGBEE_GENERATE_KEY));
+  }
+
+  ZigbeeGotoLabel(40);
 
   ResponseCmndDone();
 }

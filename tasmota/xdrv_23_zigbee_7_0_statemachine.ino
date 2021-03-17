@@ -161,6 +161,23 @@ const char kZigbeeGroup0[] PROGMEM = D_LOG_ZIGBEE "Subscribe to group 0 'ZbListe
 
 // AP SYSTEM CUSTOM
 
+// uint8_t ZBR_APS_PAIR_1[30];
+
+ZBR(ZBS_APS_PAIR_1, Z_SREQ | Z_AF, AF_DATA_REQUEST_EXT, // AF_DATA_REQUEST_EXT 
+  0x0F,                                                 // DstAddrMode (BROADCAST)
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,       // DstAddr
+  0x14,                                                 // DstEndPoint
+  0xFF, 0xFF,                                           // DstPanId
+  0x14,                                                 // SrcEndpoint
+  0x0D, 0x02,                                           // ClusterID
+  0x00,                                                 // TransID
+  0x00,                                                 // Options
+  0x0F,                                                 // Radius
+  0x11, 0x00,                                           // Len (17)
+  0x40, 0x80, 0x00, 0x10, 0x88, 0x33, 0xFF, 0xFF, 0x10, 0xFF, 0xFF, 0x80, 0x97, 0x1B, 0x01, 0xA3, 0xD8)
+
+ZBM(ZB_APS_PAIR, Z_SRSP | Z_AF, Z_SUCCESS)				// 640200
+
 // Set IEEE Address
 ZBR(ZBS_W_IEEE, Z_SREQ | Z_SAPI, SAPI_WRITE_CONFIGURATION, 0x01, 0x08 /* len */, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ieee */) // 21092D0000080000000000000000
 ZBM(ZBR_W_IEEE, Z_SRSP | Z_SAPI, SAPI_WRITE_CONFIGURATION, Z_SUCCESS)				// 660500
@@ -366,6 +383,44 @@ ZBM(ZBS_PERMITJOINREQ_CLOSE, Z_SREQ | Z_ZDO, ZDO_MGMT_PERMIT_JOIN_REQ, 0x02 /* A
 ZBM(ZBR_PERMITJOINREQ, Z_SRSP | Z_ZDO, ZDO_MGMT_PERMIT_JOIN_REQ, Z_SUCCESS)    // 653600
 ZBM(ZBR_PERMITJOIN_AREQ_RSP,  Z_AREQ | Z_ZDO, ZDO_MGMT_PERMIT_JOIN_RSP, 0x00, 0x00 /* srcAddr*/, Z_SUCCESS )   // 45B6000000
 
+void APS_Pair(uint64_t inverter_id) {
+
+
+
+  ZBW(ZBS_APS_PAIR_1, Z_SREQ | Z_AF, AF_DATA_REQUEST_EXT, // AF_DATA_REQUEST_EXT 
+  0x0F,                                                 // DstAddrMode (BROADCAST)
+  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,       // DstAddr
+  0x14,                                                 // DstEndPoint
+  0xFF, 0xFF,                                           // DstPanId
+  0x14,                                                 // SrcEndpoint
+  0x0D, 0x02,                                           // ClusterID
+  0x00,                                                 // TransID
+  0x00,                                                 // Options
+  0x0F,                                                 // Radius
+  0x11, 0x00,                                           // Len (17)
+  0x40, 0x80, 0x00, 0x10, 0x88, 0x33, 0xFF, 0xFF, 0x10, 0xFF, 0xFF, 0x80, 0x97, 0x1B, 0x01, 0xA3, 0xD8
+  )
+
+  /**
+   * 
+   * 08:46:24.89 COM5 AF_DATA_REQUEST_EXT (0x2402)
+    DstAddrMode: 0x0F (BROADCAST) (0xF)
+    DstAddr: ........ (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
+    DstEndPoint: 0x14
+    DstPanId: 0xFFFF
+    SrcEndpoint: 0x14
+    ClusterID: 0x020D
+    TransID: 0x00
+    Options: 0x00
+    Radius: 0x0F
+    Len: 0x0011
+    Data: @....3............................................................................................. (0x40, 0x80, 0x00, 0x10, 0x88, 0x33, 0xFF, 0xFF, 0x10, 0xFF, 0xFF, 0x80, 0x97, 0x1B, 0x01, 0xA3, 0xD8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+   * 
+   * */
+
+
+}
+
 // Update the relevant commands with Settings
 void ZNP_UpdateConfig(uint8_t zb_channel, uint16_t zb_pan_id, uint64_t zb_ext_panid, uint64_t zb_precfgkey_l, uint64_t zb_precfgkey_h) {
   uint32_t zb_channel_mask = (1 << zb_channel);
@@ -555,6 +610,15 @@ static const Zigbee_Instruction zb_prog[] PROGMEM = {
   ZI_LABEL(ZIGBEE_LABEL_MAIN_LOOP)
     ZI_WAIT_FOREVER()
     ZI_GOTO(ZIGBEE_LABEL_READY)
+
+  ZI_LABEL(40)
+    ZI_LOG(LOG_LEVEL_INFO, "juhuuuuuu")
+    ZI_SEND(ZBS_APS_PAIR_1)                          // check PAN ID
+    ZI_WAIT_RECV(1000, ZB_APS_PAIR)
+    ZI_SEND(ZBS_PAN)                          // check PAN ID
+    ZI_WAIT_RECV(1000, ZBR_PAN)
+    ZI_LOG(LOG_LEVEL_INFO, "juhuuuuuu 123")
+    ZI_GOTO(ZIGBEE_LABEL_MAIN_LOOP)
 
   ZI_LABEL(ZIGBEE_LABEL_FACT_RESET_COORD)                                    // reformat device
     ZI_MQTT_STATE(ZIGBEE_STATUS_RESET_CONF, kResetting)
