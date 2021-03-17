@@ -48,6 +48,11 @@
 #define CALC_POWER_KW(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600 / 1000
 #define CALC_POWER(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600
 
+#define GET_VOLTAGE1(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH1 : APS_YC600_VOLTAGE_CH1 + offset )) / 3.0f
+#define GET_VOLTAGE2(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH2 : APS_YC600_VOLTAGE_CH2 + offset )) / 3.0f
+#define GET_VOLTAGE3(buff, offset, isQs1) (buff.get8( APS_QS1_VOLTAGE_CH3  + offset )) / 3.0f
+#define GET_VOLTAGE4(buff, offset, isQs1) (buff.get8( APS_QS1_VOLTAGE_CH4  + offset )) / 3.0f
+
 #define GET_CURRENT1(buff, offset, isQs1) (((buff.get8(isQs1 ? APS_QS1_CURRENT_CH1 : APS_YC600_CURRENT_CH1 + offset + 1) & 0x0F) << 8) | buff.get8(isQs1 ? APS_QS1_CURRENT_CH1 : APS_YC600_CURRENT_CH1 + offset)) / 160.0f
 #define GET_CURRENT2(buff, offset, isQs1) (((buff.get8(isQs1 ? APS_QS1_CURRENT_CH2 : APS_YC600_CURRENT_CH2 + offset + 1) & 0x0F) << 8) | buff.get8(isQs1 ? APS_QS1_CURRENT_CH2 : APS_YC600_CURRENT_CH2 + offset)) / 160.0f
 #define GET_CURRENT3(buff, offset) (((buff.get8(APS_QS1_CURRENT_CH3 + 1) & 0x0F) << 8) | buff.get8(APS_QS1_CURRENT_CH3 + offset)) / 160.0f

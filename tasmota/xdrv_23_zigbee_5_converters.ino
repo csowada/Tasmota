@@ -1468,6 +1468,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   uint32_t timeDiff = 0;
   uint32_t totalPowerDc = 0;
   float currentDc = .0f;
+  float voltageDc = .0f;
+  
   boolean isQs1 = false;
 
   if (_frame_control.d8 == 0x40 && _transact_seq == 0x80) {
@@ -1511,11 +1513,14 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // DC Channel 1
   currentDc = GET_CURRENT1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
+  voltageDc = GET_VOLTAGE1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalPowerDc = GET_TOTAL_POWER1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   attr_dc_side.addAttributePMEM(PSTR("TotalPower1")).setUInt(CALC_POWER(totalPowerDc));
   attr_dc_side.addAttributePMEM(PSTR("Current1")).setFloat(currentDc);
+  attr_dc_side.addAttributePMEM(PSTR("Voltage1")).setFloat(voltageDc);
+  AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc1 %1_f W"), currentDc*voltageDc);
   totalPower += totalPowerDc;
-
+  
   if (timeDiff > 0 && apsystems.validTotalPower1()) {
     lastTotalPower += apsystems.getTotalPower1();
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower1: %d"), apsystems.getTotalPower1());
@@ -1524,9 +1529,12 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // DC Channel 2
   currentDc = GET_CURRENT2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
+  voltageDc = GET_VOLTAGE2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalPowerDc = GET_TOTAL_POWER2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   attr_dc_side.addAttributePMEM(PSTR("TotalPower2")).setUInt(CALC_POWER(totalPowerDc));
   attr_dc_side.addAttributePMEM(PSTR("Current2")).setFloat(currentDc);
+  attr_dc_side.addAttributePMEM(PSTR("Voltage2")).setFloat(voltageDc);
+  AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc2 %1_f W"), currentDc*voltageDc);
   totalPower += totalPowerDc;
 
   if (timeDiff > 0 && apsystems.validTotalPower2()) {
@@ -1539,9 +1547,12 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   {
     // DC Channel 3
     currentDc = GET_CURRENT3(_payload, APS_OFFSET_ZCL_PAYLOAD);
+    voltageDc = GET_VOLTAGE3(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER3(_payload, APS_OFFSET_ZCL_PAYLOAD);
     attr_dc_side.addAttributePMEM(PSTR("TotalPower3")).setUInt(CALC_POWER(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current3")).setFloat(currentDc);
+    attr_dc_side.addAttributePMEM(PSTR("Voltage3")).setFloat(voltageDc);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc3 %1_f W"), currentDc*voltageDc);
 
     if (timeDiff > 0 && apsystems.validTotalPower3()) {
       lastTotalPower += apsystems.getTotalPower3();
@@ -1551,9 +1562,13 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
     // DC Channel 4
     currentDc = GET_CURRENT4(_payload, APS_OFFSET_ZCL_PAYLOAD);
+    voltageDc = GET_VOLTAGE4(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER4(_payload, APS_OFFSET_ZCL_PAYLOAD);
     attr_dc_side.addAttributePMEM(PSTR("TotalPower4")).setUInt(CALC_POWER(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current4")).setFloat(currentDc);
+    attr_dc_side.addAttributePMEM(PSTR("Voltage4")).setFloat(voltageDc);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc4 %1_f W"), currentDc*voltageDc);
+
     if (timeDiff > 0 && apsystems.validTotalPower4()) {
       lastTotalPower += apsystems.getTotalPower4();
       AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower4: %d"), apsystems.getTotalPower4());
