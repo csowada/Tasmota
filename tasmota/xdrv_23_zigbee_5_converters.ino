@@ -1448,6 +1448,29 @@ void sendHueUpdate(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uin
 
 #ifdef USE_AP_SYSTEMS
 
+#ifdef USE_ENERGY_SENSOR
+
+uint32_t lastPowerCheckTime = 0; // Time when last power was checked
+#define XNRG_30 30 // Needs to be the last XNRG_xx
+
+/*********************************************************************************************\
+ * Energy Interface
+\*********************************************************************************************/
+
+bool Xnrg30(uint8_t function)
+{
+  bool result = false;
+
+  if (FUNC_PRE_INIT == function) {
+    Energy.current_available = false;
+    TasmotaGlobal.energy_driver = XNRG_30;
+  }
+  return result;
+}
+#endif
+
+// uint32_t lastPowerCheckTime = 0;        // Time when last power was checked
+
 void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // create the device entry if it does not exist and if it's not the local device
@@ -1587,8 +1610,9 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     apsystems.setTotalPower4(totalPowerDc);
   }
 
+  float power = 0.0f;
   if (timeDiff > 0 && lastTotalPower > 0) {
-    float power = CALC_CURRENT_POWER(totalPower, lastTotalPower, timeDiff);
+    power = CALC_CURRENT_POWER(totalPower, lastTotalPower, timeDiff);
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Power CH1 %2_f W"), &power);
 
     // Total Power
@@ -1599,9 +1623,35 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   }
 
   attr_list.addAttributePMEM(PSTR("dc")).setStrRaw(attr_dc_side.toString(true).c_str());
+
+
+#ifdef USE_ENERGY_SENSOR
+  Energy.voltage[0] = voltageAc;
+  // Energy.current[0] = power;
+  Energy.frequency[0] = frequence;
+  Energy.active_power[0] = power;
+
+  if (RtcTime.valid)
+  {
+    if (lastPowerCheckTime != 0 && Energy.active_power[0] > 0)
+    {
+      Energy.kWhtoday += (float)Energy.active_power[0] * (Rtc.utc_time - lastPowerCheckTime) / 36;
+      EnergyUpdateToday();
+    }
+    lastPowerCheckTime = Rtc.utc_time;
+  }
+#endif
+
 }
 
 #endif
+
+
+
+
+
+
+
 
 // ZCL_READ_ATTRIBUTES
 void ZCLFrame::parseReadAttributes(Z_attribute_list& attr_list) {
