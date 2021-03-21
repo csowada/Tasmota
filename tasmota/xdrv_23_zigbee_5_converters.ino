@@ -1450,8 +1450,9 @@ void sendHueUpdate(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uin
 
 #ifdef USE_ENERGY_SENSOR
 
+#define XNRG_30 30
+
 uint32_t lastPowerCheckTime = 0; // Time when last power was checked
-#define XNRG_30 30 // Needs to be the last XNRG_xx
 
 /*********************************************************************************************\
  * Energy Interface
@@ -1468,8 +1469,6 @@ bool Xnrg30(uint8_t function)
   return result;
 }
 #endif
-
-// uint32_t lastPowerCheckTime = 0;        // Time when last power was checked
 
 void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
@@ -1492,6 +1491,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   uint32_t totalPowerDc = 0;
   float currentDc = .0f;
   float voltageDc = .0f;
+  uint16_t activePowerDc = 0;
   
   boolean isQs1 = false;
 
@@ -1524,7 +1524,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   attr_list.addAttribute(0x0B04, 0x0505).setUInt(voltageAc);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("AC Voltage %1_f V"), &voltageAc);
 
-  // AC Output Requence
+  // AC Output Frequence
   float frequence = GET_FREQUENCE(_payload, APS_OFFSET_ZCL_PAYLOAD);
   attr_list.addAttribute(0x0001, 0x0001).setUInt(frequence);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Frequence %2_f Hz"), &frequence);
@@ -1550,14 +1550,17 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   
   if (timeDiff > 0 && apsystems.validTotalPower1()) {
     lastTotalPower += apsystems.getTotalPower1();
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower1: %d"), apsystems.getTotalPower1());
+    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower1(), timeDiff);
   }
   apsystems.setTotalPower1(totalPowerDc); 
+  attr_dc_side.addAttributePMEM(PSTR("ActivePower1")).setUInt(activePowerDc);
+  
 
   // DC Channel 2
   currentDc = GET_CURRENT2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   voltageDc = GET_VOLTAGE2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalPowerDc = GET_TOTAL_POWER2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
+
   attr_dc_side.addAttributePMEM(PSTR("TotalPower2")).setUInt(CALC_POWER(totalPowerDc));
   attr_dc_side.addAttributePMEM(PSTR("Current2")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage2")).setFloat(voltageDc);
@@ -1569,9 +1572,10 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   if (timeDiff > 0 && apsystems.validTotalPower2()) {
     lastTotalPower += apsystems.getTotalPower2();
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower2: %d"), apsystems.getTotalPower2());
+    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower2(), timeDiff);
   }
   apsystems.setTotalPower2(totalPowerDc);
+  attr_dc_side.addAttributePMEM(PSTR("ActivePower2")).setUInt(activePowerDc);
 
   if (isQs1)
   {
@@ -1579,6 +1583,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     currentDc = GET_CURRENT3(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE3(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER3(_payload, APS_OFFSET_ZCL_PAYLOAD);
+
     attr_dc_side.addAttributePMEM(PSTR("TotalPower3")).setUInt(CALC_POWER(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current3")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage3")).setFloat(voltageDc);
@@ -1588,14 +1593,16 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
     if (timeDiff > 0 && apsystems.validTotalPower3()) {
       lastTotalPower += apsystems.getTotalPower3();
-      AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower3: %d"), apsystems.getTotalPower3());
+      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower3(), timeDiff);
     }
     apsystems.setTotalPower3(totalPowerDc);
+    attr_dc_side.addAttributePMEM(PSTR("ActivePower3")).setUInt(activePowerDc);
 
     // DC Channel 4
     currentDc = GET_CURRENT4(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE4(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER4(_payload, APS_OFFSET_ZCL_PAYLOAD);
+
     attr_dc_side.addAttributePMEM(PSTR("TotalPower4")).setUInt(CALC_POWER(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current4")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage4")).setFloat(voltageDc);
@@ -1605,37 +1612,38 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
     if (timeDiff > 0 && apsystems.validTotalPower4()) {
       lastTotalPower += apsystems.getTotalPower4();
-      AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("getTotalPower4: %d"), apsystems.getTotalPower4());
+      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower4(), timeDiff);
     }
     apsystems.setTotalPower4(totalPowerDc);
+    attr_dc_side.addAttributePMEM(PSTR("ActivePower4")).setUInt(activePowerDc);
   }
 
   float power = 0.0f;
   if (timeDiff > 0 && lastTotalPower > 0) {
     power = CALC_CURRENT_POWER(totalPower, lastTotalPower, timeDiff);
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Power CH1 %2_f W"), &power);
-
-    // Total Power
-    attr_list.addAttribute(0x0B04, 0x050B, 0).setUInt(power);
-  } else {
-    // Total Power
-    attr_list.addAttribute(0x0B04, 0x050B, 0).setUInt(0);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Power %2_f W"), &power);
   }
+
+  // Total Power
+  attr_list.addAttribute(0x0B04, 0x050B, 0).setUInt(power);
 
   attr_list.addAttributePMEM(PSTR("dc")).setStrRaw(attr_dc_side.toString(true).c_str());
 
-
 #ifdef USE_ENERGY_SENSOR
-  Energy.voltage[0] = voltageAc;
-  // Energy.current[0] = power;
-  Energy.frequency[0] = frequence;
-  Energy.active_power[0] = power;
 
+  // support first three inverters
+  if (device.seqNumber < 3) {
+    Energy.voltage[device.seqNumber] = voltageAc;
+    Energy.frequency[device.seqNumber] = frequence;
+    Energy.active_power[device.seqNumber] = power;
+  }
+
+  // Add power of all inverters to total energy
   if (RtcTime.valid)
   {
-    if (lastPowerCheckTime != 0 && Energy.active_power[0] > 0)
+    if (lastPowerCheckTime != 0 && power > 0)
     {
-      Energy.kWhtoday += (float)Energy.active_power[0] * (Rtc.utc_time - lastPowerCheckTime) / 36;
+      Energy.kWhtoday += (float)power * (Rtc.utc_time - lastPowerCheckTime) / 36;
       EnergyUpdateToday();
     }
     lastPowerCheckTime = Rtc.utc_time;
