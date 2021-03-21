@@ -161,13 +161,13 @@ const char kZigbeeGroup0[] PROGMEM = D_LOG_ZIGBEE "Subscribe to group 0 'ZbListe
 
 // AP SYSTEM CUSTOM
 
-// Set IEEE Address
-ZBR(ZBS_W_IEEE, Z_SREQ | Z_SAPI, SAPI_WRITE_CONFIGURATION, 0x01, 0x08 /* len */, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ieee */) // 21092D0000080000000000000000
-ZBM(ZBR_W_IEEE, Z_SRSP | Z_SAPI, SAPI_WRITE_CONFIGURATION, Z_SUCCESS)				// 660500
+// // Set IEEE Address
+// ZBR(ZBS_W_IEEE, Z_SREQ | Z_SAPI, SAPI_WRITE_CONFIGURATION, 0x01, 0x08 /* len */, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ieee */) // 21092D0000080000000000000000
+// ZBM(ZBR_W_IEEE, Z_SRSP | Z_SAPI, SAPI_WRITE_CONFIGURATION, Z_SUCCESS)				// 660500
 
-// Check IEEE Address
-ZBM(ZBS_IEEE, Z_SREQ | Z_SAPI, SAPI_READ_CONFIGURATION, 0x01 )				// 2108830000                                                             // 66040001080000000000000000
-ZBR(ZBR_IEEE, Z_SRSP | Z_SAPI, SAPI_READ_CONFIGURATION, Z_SUCCESS, 0x01, 0x08 /* len */, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)				// 6604000108FFFF80971B01A3D8
+// // Check IEEE Address
+// ZBM(ZBS_IEEE, Z_SREQ | Z_SAPI, SAPI_READ_CONFIGURATION, 0x01 )				// 2108830000                                                             // 66040001080000000000000000
+// ZBR(ZBR_IEEE, Z_SRSP | Z_SAPI, SAPI_READ_CONFIGURATION, Z_SUCCESS, 0x01, 0x08 /* len */, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)				// 6604000108FFFF80971B01A3D8
 
 // ZBS_* Zigbee Send
 // ZBR_* Zigbee Recv
@@ -381,11 +381,11 @@ void ZNP_UpdateConfig(uint8_t zb_channel, uint16_t zb_pan_id, uint64_t zb_ext_pa
                   Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid),
                   )				// 61080008xxxxxxxxxxxxxxxx
 
-  ZBW(ZBR_IEEE, Z_SRSP | Z_SAPI, SAPI_READ_CONFIGURATION, Z_SUCCESS, 0x01,
-                  0x08 /* len */,
-                  0xFF, 0xFF, Z_B2(zb_ext_panid), Z_B4(zb_ext_panid),
-                  Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid),
-                  )
+  // ZBW(ZBR_IEEE, Z_SRSP | Z_SAPI, SAPI_READ_CONFIGURATION, Z_SUCCESS, 0x01,
+  //                 0x08 /* len */,
+  //                 0xFF, 0xFF, Z_B2(zb_ext_panid), Z_B4(zb_ext_panid),
+  //                 Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid),
+  //                 )
 
   ZBW(ZBR_CHANN, Z_SRSP | Z_SYS, SYS_OSAL_NV_READ, Z_SUCCESS,
                 0x04 /* len */,
@@ -420,10 +420,10 @@ void ZNP_UpdateConfig(uint8_t zb_channel, uint16_t zb_pan_id, uint64_t zb_ext_pa
                     Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid)
                     ) // 21092D0000086263151D004B1200
 
-  // Write IEEE
-  ZBW(ZBS_W_IEEE, Z_SREQ | Z_SAPI, SAPI_WRITE_CONFIGURATION, 0x01, 0x08 /* len */,
-                    0xFF, 0xFF, Z_B2(zb_ext_panid), Z_B4(zb_ext_panid),
-                  Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid))
+  // // Write IEEE
+  // ZBW(ZBS_W_IEEE, Z_SREQ | Z_SAPI, SAPI_WRITE_CONFIGURATION, 0x01, 0x08 /* len */,
+  //                   0xFF, 0xFF, Z_B2(zb_ext_panid), Z_B4(zb_ext_panid),
+  //                 Z_B4(zb_ext_panid), Z_B5(zb_ext_panid), Z_B6(zb_ext_panid), Z_B7(zb_ext_panid))
 
   // Write Channel ID
   ZBW(ZBS_W_CHANN, Z_SREQ | Z_SYS, SYS_OSAL_NV_WRITE, CONF_CHANLIST,0x00, 0x00, 0x04 /* len */,
@@ -491,8 +491,8 @@ static const Zigbee_Instruction zb_prog[] PROGMEM = {
     // CS: Why we are not able to switch the channel? The firmware is currently build for channel 16 ! Fixme !!
     // ZI_SEND(ZBS_CHANN)                        // check CHANNEL
     // ZI_WAIT_RECV(1000, ZBR_CHANN)
-    ZI_SEND(ZBS_IEEE)                        // check IEEE
-    ZI_WAIT_RECV(1000, ZBR_IEEE)
+    // ZI_SEND(ZBS_IEEE)                        // check IEEE
+    // ZI_WAIT_RECV(1000, ZBR_IEEE)
 
 #ifndef USE_ZIGBEE_DISABLED_SECURITY
     ZI_SEND(ZBS_PFGKEN)                       // check PFGKEN
@@ -568,8 +568,8 @@ static const Zigbee_Instruction zb_prog[] PROGMEM = {
     ZI_WAIT_RECV(1000, ZBR_WNV_OK)
     ZI_SEND(ZBS_W_EXTPAN)                         // write EXT PAN ID
     ZI_WAIT_RECV(1000, ZBR_WNV_OK)
-    ZI_SEND(ZBS_W_IEEE)                           // write IEEE
-    ZI_WAIT_RECV(1000, ZBR_W_IEEE)
+    // ZI_SEND(ZBS_W_IEEE)                           // write IEEE
+    // ZI_WAIT_RECV(1000, ZBR_W_IEEE)
     ZI_SEND(ZBS_W_CHANN)                          // write CHANNEL
     ZI_WAIT_RECV(1000, ZBR_WNV_OK)
     ZI_SEND(ZBS_W_LOGTYP_COORD)                   // write Logical Type = coordinator

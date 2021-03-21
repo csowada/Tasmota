@@ -205,9 +205,6 @@ public:
   inline void setTotalPower4(uint32_t _total_power4)  { total_power4 = _total_power4; }
 
   static const Z_Data_Type type = Z_Data_Type::Z_APSystems;
-  // 4 bytes
-  // uint16_t              mains_voltage;  // AC voltage
-  // int16_t               mains_power;    // Active power
 
   uint16_t              time_stamp;
   uint32_t              total_power1;
