@@ -32,7 +32,7 @@ enum class Z_Data_Type : uint8_t {
   Z_Alarm = 4,
   Z_Thermo = 5,             // Thermostat and sensor for home environment (temp, himudity, pressure)
   Z_OnOff = 6,              // OnOff, Buttons and Relays (always complements Lights and Plugs)
-  Z_4Ch_EnergyMeter = 7,    // 3-channel enery meter
+  Z_4Ch_EnergyMeter = 7,    // 4-channel enery meter
   Z_Mode = 0xE,             // Encode special modes for communication, like Tuya Zigbee protocol
   Z_Ext = 0xF,              // extended for other values
   Z_Device = 0xFF           // special value when parsing Device level attributes

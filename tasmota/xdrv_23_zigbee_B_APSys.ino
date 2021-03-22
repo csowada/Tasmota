@@ -163,12 +163,12 @@ void Z_4Ch_EnergyMeterCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t 
   device.setReachable(false);
 
   // reset ap systems total power and timestamp
-  Z_Data_4Ch_EnergyMeter & apsystems = device.data.get<Z_Data_4Ch_EnergyMeter>();
-  apsystems.setTimeStamp(0xFFFF);
-  apsystems.setTotalPower1(0xFFFFFFFF);
-  apsystems.setTotalPower2(0xFFFFFFFF);
-  apsystems.setTotalPower3(0xFFFFFFFF);
-  apsystems.setTotalPower4(0xFFFFFFFF);
+  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
+  fchmeter.setTimeStamp(0xFFFF);
+  fchmeter.setTotalPower1(0xFFFFFFFF);
+  fchmeter.setTotalPower2(0xFFFFFFFF);
+  fchmeter.setTotalPower3(0xFFFFFFFF);
+  fchmeter.setTotalPower4(0xFFFFFFFF);
 
   // reset voltage and power
   Z_Data_Plug & plug = device.data.get<Z_Data_Plug>();
@@ -201,13 +201,13 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Device device ..."));
     return;
   }
-  Z_Data_4Ch_EnergyMeter & apsystems = device.data.get<Z_Data_4Ch_EnergyMeter>();
-  if (&apsystems == nullptr) {
+  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
+  if (&fchmeter == nullptr) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter device ..."));
     return;
   }
 
-  if (!apsystems.validTimeStamp()) {
+  if (!fchmeter.validTimeStamp()) {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Set timeout 5mins for new device ..."));
     uint32_t timeout_timer = 5 * 60 * 1000; // 5mins
     zigbee_devices.setTimer(_srcaddr, 0 /* groupaddr */, timeout_timer, _cluster_id, _srcendpoint, Z_CAT_ALWAYS, 0, &Z_4Ch_EnergyMeterCallback);
@@ -245,11 +245,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("TimeStamp %d"), timeStamp);
 
   // set time difference after seconds telegram
-  if (apsystems.validTimeStamp()) {
-    timeDiff = timeStamp - apsystems.getTimeStamp();
+  if (fchmeter.validTimeStamp()) {
+    timeDiff = timeStamp - fchmeter.getTimeStamp();
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Time Diff %d"), timeDiff);
   }
-  apsystems.setTimeStamp(timeStamp);
+  fchmeter.setTimeStamp(timeStamp);
 
   // AC Output Voltage
   float voltageAc = GET_VOLTAGE_AC(_payload, APS_OFFSET_ZCL_PAYLOAD);
@@ -280,11 +280,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   totalPower += totalPowerDc;
   
-  if (timeDiff > 0 && apsystems.validTotalPower1()) {
-    lastTotalPower += apsystems.getTotalPower1();
-    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower1(), timeDiff);
+  if (timeDiff > 0 && fchmeter.validTotalPower1()) {
+    lastTotalPower += fchmeter.getTotalPower1();
+    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower1(), timeDiff);
   }
-  apsystems.setTotalPower1(totalPowerDc); 
+  fchmeter.setTotalPower1(totalPowerDc); 
   attr_dc_side.addAttributePMEM(PSTR("ActivePower1")).setUInt(activePowerDc);
   
 
@@ -302,11 +302,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   totalPower += totalPowerDc;
 
-  if (timeDiff > 0 && apsystems.validTotalPower2()) {
-    lastTotalPower += apsystems.getTotalPower2();
-    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower2(), timeDiff);
+  if (timeDiff > 0 && fchmeter.validTotalPower2()) {
+    lastTotalPower += fchmeter.getTotalPower2();
+    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower2(), timeDiff);
   }
-  apsystems.setTotalPower2(totalPowerDc);
+  fchmeter.setTotalPower2(totalPowerDc);
   attr_dc_side.addAttributePMEM(PSTR("ActivePower2")).setUInt(activePowerDc);
 
   if (isQs1)
@@ -323,11 +323,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     calcPower = currentDc * voltageDc;
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc3 %1_f W"), &calcPower);
 
-    if (timeDiff > 0 && apsystems.validTotalPower3()) {
-      lastTotalPower += apsystems.getTotalPower3();
-      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower3(), timeDiff);
+    if (timeDiff > 0 && fchmeter.validTotalPower3()) {
+      lastTotalPower += fchmeter.getTotalPower3();
+      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower3(), timeDiff);
     }
-    apsystems.setTotalPower3(totalPowerDc);
+    fchmeter.setTotalPower3(totalPowerDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower3")).setUInt(activePowerDc);
 
     // DC Channel 4
@@ -342,11 +342,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     calcPower = currentDc * voltageDc;
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc4 %1_f W"), &calcPower);
 
-    if (timeDiff > 0 && apsystems.validTotalPower4()) {
-      lastTotalPower += apsystems.getTotalPower4();
-      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, apsystems.getTotalPower4(), timeDiff);
+    if (timeDiff > 0 && fchmeter.validTotalPower4()) {
+      lastTotalPower += fchmeter.getTotalPower4();
+      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower4(), timeDiff);
     }
-    apsystems.setTotalPower4(totalPowerDc);
+    fchmeter.setTotalPower4(totalPowerDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower4")).setUInt(activePowerDc);
   }
 
