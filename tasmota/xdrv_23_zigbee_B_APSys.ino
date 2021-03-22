@@ -103,6 +103,9 @@ bool Xnrg30(uint8_t function)
 }
 #endif
 
+/**
+ * Extract n bytes from SBuffer
+ */
 uint64_t getBigEndian(const class SBuffer &buff, size_t offset, size_t len)
 {
   uint64_t value = 0;
@@ -113,6 +116,10 @@ uint64_t getBigEndian(const class SBuffer &buff, size_t offset, size_t len)
   return value;
 }
 
+/*
+* Zigbee query inverter command like
+* ZbQueryInverter 0x3d82
+*/
 void CmndZbQueryInverter(void)
 {
   uint16_t shortaddr = zigbee_devices.parseDeviceFromName(XdrvMailbox.data).shortaddr;
@@ -139,8 +146,10 @@ void CmndZbQueryInverter(void)
   ResponseCmndDone();
 }
 
-/// Reset device values when the timer expired
-void Z_APSystemsCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uint8_t endpoint, uint32_t value) {
+/*
+* Reset device values when the timer expired
+*/
+void Z_4Ch_EnergyMeterCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uint8_t endpoint, uint32_t value) {
 
   AddLog_P(LOG_LEVEL_ERROR, PSTR("Timeout for Inverter 0x%04X, reset all vallues ..."), shortaddr);
 
@@ -154,7 +163,7 @@ void Z_APSystemsCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluste
   device.setReachable(false);
 
   // reset ap systems total power and timestamp
-  Z_Data_APSystems & apsystems = device.data.get<Z_Data_APSystems>();
+  Z_Data_4Ch_EnergyMeter & apsystems = device.data.get<Z_Data_4Ch_EnergyMeter>();
   apsystems.setTimeStamp(0xFFFF);
   apsystems.setTotalPower1(0xFFFFFFFF);
   apsystems.setTotalPower2(0xFFFFFFFF);
@@ -181,6 +190,9 @@ void Z_APSystemsCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluste
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Value reset done ..."));
 }
 
+/*
+* ZCL Class AP Systems parser
+*/
 void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // create the device entry if it does not exist and if it's not the local device
@@ -189,16 +201,16 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Device device ..."));
     return;
   }
-  Z_Data_APSystems & apsystems = device.data.get<Z_Data_APSystems>();
+  Z_Data_4Ch_EnergyMeter & apsystems = device.data.get<Z_Data_4Ch_EnergyMeter>();
   if (&apsystems == nullptr) {
-    AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_APSystems device ..."));
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter device ..."));
     return;
   }
 
   if (!apsystems.validTimeStamp()) {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Set timeout 5mins for new device ..."));
     uint32_t timeout_timer = 5 * 60 * 1000; // 5mins
-    zigbee_devices.setTimer(_srcaddr, 0 /* groupaddr */, timeout_timer, _cluster_id, _srcendpoint, Z_CAT_ALWAYS, 0, &Z_APSystemsCallback);
+    zigbee_devices.setTimer(_srcaddr, 0 /* groupaddr */, timeout_timer, _cluster_id, _srcendpoint, Z_CAT_ALWAYS, 0, &Z_4Ch_EnergyMeterCallback);
   } else {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Reset timeout 5mins for current device ..."));
     zigbee_devices.resetTimersForDevice(_srcaddr, 0 /* groupaddr */, Z_CAT_ALWAYS);

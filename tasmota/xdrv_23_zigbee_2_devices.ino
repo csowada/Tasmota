@@ -32,7 +32,7 @@ enum class Z_Data_Type : uint8_t {
   Z_Alarm = 4,
   Z_Thermo = 5,             // Thermostat and sensor for home environment (temp, himudity, pressure)
   Z_OnOff = 6,              // OnOff, Buttons and Relays (always complements Lights and Plugs)
-  Z_APSystems = 7,          // AP Systems PV Inverter
+  Z_4Ch_EnergyMeter = 7,    // 3-channel enery meter
   Z_Mode = 0xE,             // Encode special modes for communication, like Tuya Zigbee protocol
   Z_Ext = 0xF,              // extended for other values
   Z_Device = 0xFF           // special value when parsing Device level attributes
@@ -46,7 +46,7 @@ const uint8_t Z_Data_Type_char[] PROGMEM = {
   'A',      // 0x04 Z_Data_Type::Z_Alarm
   'T',      // 0x05 Z_Data_Type::Z_Thermo
   'O',      // 0x06 Z_Data_Type::Z_OnOff
-  'V',      // 0x07 Z_Data_Type::Z_APSystems
+  'V',      // 0x07 Z_Data_Type::Z_4Ch_EnergyMeter
   '\0',     // 0x08
   '\0',     // 0x09
   '\0',     // 0x0A
@@ -173,12 +173,12 @@ public:
 
 
 /*********************************************************************************************\
- * Device specific: AP Systems
+ * Device specific: 4-Channel Energy Meter
 \*********************************************************************************************/
-class Z_Data_APSystems : public Z_Data {
+class Z_Data_4Ch_EnergyMeter : public Z_Data {
 public:
-  Z_Data_APSystems(uint8_t endpoint = 0) :
-    Z_Data(Z_Data_Type::Z_APSystems, endpoint),
+  Z_Data_4Ch_EnergyMeter(uint8_t endpoint = 0) :
+    Z_Data(Z_Data_Type::Z_4Ch_EnergyMeter, endpoint),
     time_stamp(0xFFFF),
     total_power1(0xFFFFFFFF),
     total_power2(0xFFFFFFFF),
@@ -204,7 +204,7 @@ public:
   inline void setTotalPower3(uint32_t _total_power3)  { total_power3 = _total_power3; }
   inline void setTotalPower4(uint32_t _total_power4)  { total_power4 = _total_power4; }
 
-  static const Z_Data_Type type = Z_Data_Type::Z_APSystems;
+  static const Z_Data_Type type = Z_Data_Type::Z_4Ch_EnergyMeter;
 
   uint16_t              time_stamp;
   uint32_t              total_power1;
@@ -582,7 +582,7 @@ const uint8_t Z_Data_Type_len[] PROGMEM = {
   sizeof(Z_Data_Alarm),     // 0x04 Z_Data_Type::Z_Alarm
   sizeof(Z_Data_Thermo),    // 0x05 Z_Data_Type::Z_Thermo
   sizeof(Z_Data_OnOff),     // 0x06 Z_Data_Type::Z_OnOff
-  sizeof(Z_Data_APSystems), // 0x07 Z_Data_Type::Z_APSystems
+  sizeof(Z_Data_4Ch_EnergyMeter), // 0x07 Z_Data_Type::Z_4Ch_EnergyMeter
   0,     // 0x08
   0,     // 0x09
   0,     // 0x0A
@@ -643,7 +643,7 @@ bool Z_Data_Set::updateData(Z_Data & elt) {
     case Z_Data_Type::Z_Alarm:  return ((Z_Data_Alarm&) elt).update();       break;
     case Z_Data_Type::Z_Thermo: return ((Z_Data_Thermo&) elt).update();      break;
     case Z_Data_Type::Z_OnOff:  return ((Z_Data_OnOff&) elt).update();       break;
-    case Z_Data_Type::Z_APSystems:  return ((Z_Data_APSystems&) elt).update();       break;
+    case Z_Data_Type::Z_4Ch_EnergyMeter:  return ((Z_Data_4Ch_EnergyMeter&) elt).update();       break;
     case Z_Data_Type::Z_PIR:    return ((Z_Data_PIR&) elt).update();         break;
     case Z_Data_Type::Z_Mode:   return ((Z_Data_Mode&) elt).update();        break;
     default: return false;
@@ -662,8 +662,8 @@ Z_Data & Z_Data_Set::getByType(Z_Data_Type type, uint8_t ep) {
       return get<Z_Data_Thermo>(ep);
     case Z_Data_Type::Z_OnOff:
       return get<Z_Data_OnOff>(ep);
-    case Z_Data_Type::Z_APSystems:
-      return get<Z_Data_APSystems>(ep);
+    case Z_Data_Type::Z_4Ch_EnergyMeter:
+      return get<Z_Data_4Ch_EnergyMeter>(ep);
     case Z_Data_Type::Z_PIR:
       return get<Z_Data_PIR>(ep);
     case Z_Data_Type::Z_Mode:

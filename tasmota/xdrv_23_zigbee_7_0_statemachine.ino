@@ -18,25 +18,6 @@
 */
 #ifdef USE_ZIGBEE
 
-// #define ZB_COMILE_TIME_HELPERS
-
-#ifdef ZB_COMILE_TIME_HELPERS
-#include "stdio.h"
-#include "tasmota.h"
-#include "tasmota_globals.h"
-#include "i18n.h"
-#include "support.ino"
-#include "SBuffer.hpp"
-#include "xdrv_02_mqtt.ino"
-#include "xdrv_23_zigbee_0_constants.ino"
-#include "xdrv_23_zigbee_1_headers.ino"
-#include "xdrv_23_zigbee_8_parsers.ino"
-#include "xdrv_23_zigbee_9_serial.ino"
-#include "my_user_config.h"
-#endif
-
-// #define USE_ZIGBEE_DISABLED_SECURITY
-
 // Status code used for ZigbeeStatus MQTT message
 // Ex: {"ZbStatus":{"Status": 3,"Message":"Configured, starting coordinator"}}
 const uint8_t  ZIGBEE_STATUS_OK = 0;                    // Zigbee started and working
