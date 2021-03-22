@@ -122,7 +122,20 @@ uint64_t getBigEndian(const class SBuffer &buff, size_t offset, size_t len)
 */
 void CmndZbQueryInverter(void)
 {
-  uint16_t shortaddr = zigbee_devices.parseDeviceFromName(XdrvMailbox.data).shortaddr;
+  size_t param_len = strlen(XdrvMailbox.data);
+  char dataBuf[param_len + 1];
+  strcpy(dataBuf, XdrvMailbox.data);
+  RemoveSpace(dataBuf);
+
+  uint16_t shortaddr = BAD_SHORTADDR;
+  if ((dataBuf[0] == '0') && ((dataBuf[1] == 'x') || (dataBuf[1] == 'X'))) {
+    // starts with 0x
+    if (strlen(dataBuf) < 18) {
+      // expect a short address
+      shortaddr = strtoull(dataBuf, nullptr, 0);
+    }
+  }
+
   if (BAD_SHORTADDR == shortaddr)
   {
     ResponseCmndChar_P(PSTR(D_ZIGBEE_UNKNOWN_DEVICE));
@@ -139,7 +152,7 @@ void CmndZbQueryInverter(void)
        0x00,                                                                         // Options
        0x0F,                                                                         // Radius
        0x13,                                                                         // Len
-       Z_B5(ecuId), Z_B4(ecuId), Z_B3(ecuId), Z_B2(ecuId), Z_B1(ecuId), Z_B0(ecuId), // order correct?
+       Z_B0(ecuId), Z_B1(ecuId), Z_B2(ecuId), Z_B3(ecuId), Z_B4(ecuId), Z_B5(ecuId), // order correct?
        0xFB, 0xFB, 0x06, 0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC1, 0xFE, 0xFE};
 
   ZigbeeZNPSend(query_msg, sizeof(query_msg));
