@@ -58,3 +58,11 @@ Rule1
   
 Rule1 1
 ```
+
+or
+
+```
+Rule1 ON System#Boot DO RuleTimer1 20 ENDON ON Rules#Timer=1 DO backlog ZbQueryInverter 0x3d82; RuleTimer1 20 ENDON
+
+Rule1 1
+```
