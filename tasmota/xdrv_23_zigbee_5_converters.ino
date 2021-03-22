@@ -1446,7 +1446,7 @@ void sendHueUpdate(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uin
   }
 }
 
-#ifdef USE_AP_SYSTEMS
+#ifdef USE_AP_SYSTEMS_NOT_USED_ANYMORE
 
 #ifdef USE_ENERGY_SENSOR
 
@@ -1700,17 +1700,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     lastPowerCheckTime = Rtc.utc_time;
   }
 #endif
-
 }
-
 #endif
-
-
-
-
-
-
-
 
 // ZCL_READ_ATTRIBUTES
 void ZCLFrame::parseReadAttributes(Z_attribute_list& attr_list) {

@@ -622,6 +622,11 @@
 #define D_CMND_ZIGBEE_SCAN "Scan"
   #define D_JSON_ZIGBEE_SCAN "ZbScan"
 
+#ifdef USE_AP_SYSTEMS
+#define D_CMND_ZIGBEE_QUERY_INVERTER "QueryInverter"
+  #define D_JSON_ZIGBEE_QUERY_INVERTER "ZbQueryInverter"
+#endif
+
 // Commands xdrv_25_A4988_Stepper.ino
 #define D_CMND_MOTOR "MOTOR"
 #define D_JSON_MOTOR_MOVE "doMove"

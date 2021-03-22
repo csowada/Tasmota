@@ -1,4 +1,4 @@
-#ifdef USE_ZIGBEE
+#ifdef USE_ZIGBEE_NOT_USED_ANYMORE
 #ifdef USE_AP_SYSTEMS
 
 #define APS_OFFSET_AF_INC_MSG 19  // OFFSET for raw AfIncomingMessage

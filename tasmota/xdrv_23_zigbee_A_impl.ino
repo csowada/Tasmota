@@ -40,6 +40,9 @@ const char kZbCommands[] PROGMEM = D_PRFX_ZB "|"    // prefix
   D_CMND_ZIGBEE_LIGHT "|" D_CMND_ZIGBEE_OCCUPANCY "|"
   D_CMND_ZIGBEE_RESTORE "|" D_CMND_ZIGBEE_BIND_STATE "|" D_CMND_ZIGBEE_MAP "|" D_CMND_ZIGBEE_LEAVE "|"
   D_CMND_ZIGBEE_CONFIG "|" D_CMND_ZIGBEE_DATA "|" D_CMND_ZIGBEE_SCAN
+#ifdef USE_AP_SYSTEMS
+  "|" D_CMND_ZIGBEE_QUERY_INVERTER
+#endif
   ;
 
 SO_SYNONYMS(kZbSynonyms,
@@ -61,6 +64,9 @@ void (* const ZigbeeCommand[])(void) PROGMEM = {
   &CmndZbLight, &CmndZbOccupancy,
   &CmndZbRestore, &CmndZbBindState, &CmndZbMap, CmndZbLeave,
   &CmndZbConfig, &CmndZbData, &CmndZbScan,
+#ifdef USE_AP_SYSTEMS
+  &CmndZbQueryInverter,
+#endif
   };
 
 /********************************************************************************************/
