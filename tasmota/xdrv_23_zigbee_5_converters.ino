@@ -1470,6 +1470,48 @@ bool Xnrg30(uint8_t function)
 }
 #endif
 
+/// Reset device values when the timer expired
+void Z_APSystemsCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uint8_t endpoint, uint32_t value) {
+
+  AddLog_P(LOG_LEVEL_ERROR, PSTR("Timeout for Inverter 0x%04X, reset all vallues ..."), shortaddr);
+
+  Z_Device & device = zigbee_devices.getShortAddr(shortaddr);
+  if (!device.valid()) {
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Device device ..."));
+    return;
+  }
+
+  // set device to unreachable
+  device.setReachable(false);
+
+  // reset ap systems total power and timestamp
+  Z_Data_APSystems & apsystems = device.data.get<Z_Data_APSystems>();
+  apsystems.setTimeStamp(0xFFFF);
+  apsystems.setTotalPower1(0xFFFFFFFF);
+  apsystems.setTotalPower2(0xFFFFFFFF);
+  apsystems.setTotalPower3(0xFFFFFFFF);
+  apsystems.setTotalPower4(0xFFFFFFFF);
+
+  // reset voltage and power
+  Z_Data_Plug & plug = device.data.get<Z_Data_Plug>();
+  plug.setMainsVoltage(0xFFFF);
+  plug.setMainsPower(-0x8000);
+
+  // reset temperature
+  Z_Data_Thermo & thermo = device.data.get<Z_Data_Thermo>();
+  thermo.setTemperature(-0x8000);
+
+#ifdef USE_ENERGY_SENSOR
+  // support first three inverters
+  if (device.seqNumber < 3) {
+    Energy.voltage[device.seqNumber] = 0;
+    Energy.frequency[device.seqNumber] = 0;
+    Energy.active_power[device.seqNumber] = 0;
+  }
+#endif
+  AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Value reset done ..."));
+}
+
 void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // create the device entry if it does not exist and if it's not the local device
@@ -1482,6 +1524,15 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   if (&apsystems == nullptr) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_APSystems device ..."));
     return;
+  }
+
+  if (!apsystems.validTimeStamp()) {
+    AddLog_P(LOG_LEVEL_DEBUG, PSTR("Set timeout 5mins for new device ..."));
+    uint32_t timeout_timer = 5 * 60 * 1000; // 5mins
+    zigbee_devices.setTimer(_srcaddr, 0 /* groupaddr */, timeout_timer, _cluster_id, _srcendpoint, Z_CAT_ALWAYS, 0, &Z_APSystemsCallback);
+  } else {
+    AddLog_P(LOG_LEVEL_DEBUG, PSTR("Reset timeout 5mins for current device ..."));
+    zigbee_devices.resetTimersForDevice(_srcaddr, 0 /* groupaddr */, Z_CAT_ALWAYS);
   }
 
   Z_attribute_list attr_dc_side;
