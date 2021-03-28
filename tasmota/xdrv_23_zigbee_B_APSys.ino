@@ -63,8 +63,9 @@
 #define GET_TOTAL_POWER4(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH4 + offset, 3)
 
 #define CALC_CURRENT_POWER(currentTotal, lastTotal, timeDiff) ((currentTotal - lastTotal) * 8.311f) / timeDiff;
-#define CALC_POWER_KW(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600 / 1000
-#define CALC_POWER(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600
+#define CALC_POWER_KWH(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600 / 1000
+#define CALC_POWER_WH(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600
+#define CALC_POWER_WS(todayEnergyRaw) todayEnergyRaw * 8.311f
 
 #define GET_VOLTAGE1(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH1 : APS_YC600_VOLTAGE_CH1 + offset)) / 3.0f
 #define GET_VOLTAGE2(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH2 : APS_YC600_VOLTAGE_CH2 + offset)) / 3.0f
@@ -85,8 +86,6 @@
 uint64_t ecuId = ECU_ID;
 
 #ifdef USE_ENERGY_SENSOR
-uint32_t lastPowerCheckTime = 0; // Time when last power was checked
-
 /*********************************************************************************************\
  * Energy Interface
 \*********************************************************************************************/
@@ -109,8 +108,7 @@ bool Xnrg30(uint8_t function)
 uint64_t getBigEndian(const class SBuffer &buff, size_t offset, size_t len)
 {
   uint64_t value = 0;
-  for (size_t i = 0; i < len; i++)
-  {
+  for (size_t i = 0; i < len; i++) {
     value |= ((uint64_t)buff.get8(offset + len - 1 - i) << (8 * i));
   }
   return value;
@@ -136,8 +134,7 @@ void CmndZbQueryInverter(void)
     }
   }
 
-  if (BAD_SHORTADDR == shortaddr)
-  {
+  if (BAD_SHORTADDR == shortaddr) {
     ResponseCmndChar_P(PSTR(D_ZIGBEE_UNKNOWN_DEVICE));
     return;
   }
@@ -152,7 +149,7 @@ void CmndZbQueryInverter(void)
        0x00,                                                                         // Options
        0x0F,                                                                         // Radius
        0x13,                                                                         // Len
-       Z_B0(ecuId), Z_B1(ecuId), Z_B2(ecuId), Z_B3(ecuId), Z_B4(ecuId), Z_B5(ecuId), // order correct?
+       Z_B0(ecuId), Z_B1(ecuId), Z_B2(ecuId), Z_B3(ecuId), Z_B4(ecuId), Z_B5(ecuId), // ECU ID
        0xFB, 0xFB, 0x06, 0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC1, 0xFE, 0xFE};
 
   ZigbeeZNPSend(query_msg, sizeof(query_msg));
@@ -164,7 +161,7 @@ void CmndZbQueryInverter(void)
 */
 void Z_4Ch_EnergyMeterCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t cluster, uint8_t endpoint, uint32_t value) {
 
-  AddLog_P(LOG_LEVEL_ERROR, PSTR("Timeout for Inverter 0x%04X, reset all vallues ..."), shortaddr);
+  AddLog_P(LOG_LEVEL_ERROR, PSTR("Timeout for Inverter 0x%04X, reset all values ..."), shortaddr);
 
   Z_Device & device = zigbee_devices.getShortAddr(shortaddr);
   if (!device.valid()) {
@@ -214,6 +211,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Device device ..."));
     return;
   }
+
   Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
   if (&fchmeter == nullptr) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter device ..."));
@@ -222,7 +220,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   if (!fchmeter.validTimeStamp()) {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Set timeout 5mins for new device ..."));
-    uint32_t timeout_timer = 5 * 60 * 1000; // 5mins
+    uint32_t timeout_timer = 300000; // 5mins (5 * 60 * 1000)
     zigbee_devices.setTimer(_srcaddr, 0 /* groupaddr */, timeout_timer, _cluster_id, _srcendpoint, Z_CAT_ALWAYS, 0, &Z_4Ch_EnergyMeterCallback);
   } else {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Reset timeout 5mins for current device ..."));
@@ -254,12 +252,25 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     return;
   }
 
+  // validate received message
+  if (_payload.len() != 91 || _payload.get16(APS_OFFSET_ZCL_PAYLOAD + 6) != 0xFBFB || _payload.get16(APS_OFFSET_ZCL_PAYLOAD + 92) != 0xFEFE) {
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Invalid/unknown message, skip ..."));
+  }
+
   uint16_t timeStamp = GET_TIME_STAMP(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("TimeStamp %d"), timeStamp);
 
   // set time difference after seconds telegram
   if (fchmeter.validTimeStamp()) {
-    timeDiff = timeStamp - fchmeter.getTimeStamp();
+
+    // timestamp is smaller as before, inverter restart due to low sun?
+    if (fchmeter.getTimeStamp() > timeStamp) {
+      AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: Timestamp diff invalid: %d - %d"), fchmeter.getTimeStamp(), timeStamp);
+      timeDiff = 0;
+    } else {
+      timeDiff = timeStamp - fchmeter.getTimeStamp();
+    }
+
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Time Diff %d"), timeDiff);
   }
   fchmeter.setTimeStamp(timeStamp);
@@ -268,23 +279,33 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   float voltageAc = GET_VOLTAGE_AC(_payload, APS_OFFSET_ZCL_PAYLOAD);
   attr_list.addAttribute(0x0B04, 0x0505).setUInt(voltageAc);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("AC Voltage %1_f V"), &voltageAc);
+  if (voltageAc < 160 || voltageAc > 280) {
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: Voltage range invalid!"));
+    return;
+  }
 
   // AC Output Frequence
   float frequence = GET_FREQUENCE(_payload, APS_OFFSET_ZCL_PAYLOAD);
   attr_list.addAttribute(0x0001, 0x0001).setUInt(frequence);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Frequence %2_f Hz"), &frequence);
+  if (frequence < 40 || frequence > 60) {
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: Frequence range invalid!"));
+    return;
+  }
 
   // Temperature
   float temperature = GET_TEMPERATURE(_payload, APS_OFFSET_ZCL_PAYLOAD) ;
   attr_list.addAttribute(0x0402, 0x0000).setInt(temperature * 100);
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Temperature %1_f C"), &temperature);
 
-  // DC Channel 1
+  // *******************************************************************
+  // **   DC Channel 1
+  // *******************************************************************
   currentDc = GET_CURRENT1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   voltageDc = GET_VOLTAGE1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalPowerDc = GET_TOTAL_POWER1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("TotalPower1")).setUInt(CALC_POWER(totalPowerDc));
+  attr_dc_side.addAttributePMEM(PSTR("TotalPower1")).setUInt(CALC_POWER_WH(totalPowerDc));
   attr_dc_side.addAttributePMEM(PSTR("Current1")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage1")).setFloat(voltageDc);
 
@@ -294,19 +315,24 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   totalPower += totalPowerDc;
   
   if (timeDiff > 0 && fchmeter.validTotalPower1()) {
-    lastTotalPower += fchmeter.getTotalPower1();
     activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower1(), timeDiff);
+    if (activePowerDc > 350) {
+      AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower1 too high!"));
+      return;
+    }
+    lastTotalPower += fchmeter.getTotalPower1();
   }
   fchmeter.setTotalPower1(totalPowerDc); 
   attr_dc_side.addAttributePMEM(PSTR("ActivePower1")).setUInt(activePowerDc);
   
-
-  // DC Channel 2
+  // *******************************************************************
+  // **   DC Channel 2
+  // *******************************************************************
   currentDc = GET_CURRENT2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   voltageDc = GET_VOLTAGE2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalPowerDc = GET_TOTAL_POWER2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("TotalPower2")).setUInt(CALC_POWER(totalPowerDc));
+  attr_dc_side.addAttributePMEM(PSTR("TotalPower2")).setUInt(CALC_POWER_WH(totalPowerDc));
   attr_dc_side.addAttributePMEM(PSTR("Current2")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage2")).setFloat(voltageDc);
 
@@ -316,20 +342,26 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   totalPower += totalPowerDc;
 
   if (timeDiff > 0 && fchmeter.validTotalPower2()) {
-    lastTotalPower += fchmeter.getTotalPower2();
     activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower2(), timeDiff);
+    if (activePowerDc > 350) {
+      AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower2 too high!"));
+      return;
+    }
+    lastTotalPower += fchmeter.getTotalPower2();
   }
   fchmeter.setTotalPower2(totalPowerDc);
   attr_dc_side.addAttributePMEM(PSTR("ActivePower2")).setUInt(activePowerDc);
 
   if (isQs1)
   {
-    // DC Channel 3
+    // *******************************************************************
+    // **   DC Channel 3
+    // *******************************************************************
     currentDc = GET_CURRENT3(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE3(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER3(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("TotalPower3")).setUInt(CALC_POWER(totalPowerDc));
+    attr_dc_side.addAttributePMEM(PSTR("TotalPower3")).setUInt(CALC_POWER_WH(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current3")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage3")).setFloat(voltageDc);
 
@@ -337,18 +369,24 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc3 %1_f W"), &calcPower);
 
     if (timeDiff > 0 && fchmeter.validTotalPower3()) {
-      lastTotalPower += fchmeter.getTotalPower3();
       activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower3(), timeDiff);
+      if (activePowerDc > 350) {
+        AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower3 too high!"));
+        return;
+      }
+      lastTotalPower += fchmeter.getTotalPower3();
     }
     fchmeter.setTotalPower3(totalPowerDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower3")).setUInt(activePowerDc);
 
-    // DC Channel 4
+    // *******************************************************************
+    // **   DC Channel 4
+    // *******************************************************************
     currentDc = GET_CURRENT4(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE4(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalPowerDc = GET_TOTAL_POWER4(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("TotalPower4")).setUInt(CALC_POWER(totalPowerDc));
+    attr_dc_side.addAttributePMEM(PSTR("TotalPower4")).setUInt(CALC_POWER_WH(totalPowerDc));
     attr_dc_side.addAttributePMEM(PSTR("Current4")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage4")).setFloat(voltageDc);
 
@@ -356,17 +394,27 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc4 %1_f W"), &calcPower);
 
     if (timeDiff > 0 && fchmeter.validTotalPower4()) {
-      lastTotalPower += fchmeter.getTotalPower4();
       activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower4(), timeDiff);
+      if (activePowerDc > 350) {
+        AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower4 too high!"));
+        return;
+      }
+      lastTotalPower += fchmeter.getTotalPower4();
     }
     fchmeter.setTotalPower4(totalPowerDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower4")).setUInt(activePowerDc);
   }
 
+  // *******************************************************************
+
   float power = 0.0f;
   if (timeDiff > 0 && lastTotalPower > 0) {
     power = CALC_CURRENT_POWER(totalPower, lastTotalPower, timeDiff);
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Power %2_f W"), &power);
+    if (isQs1 && power > 1400 || !isQs1 && power > 700) {
+      AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower too high!"));
+      return;
+    }
   }
 
   // Total Power
@@ -384,15 +432,28 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   }
 
   // Add power of all inverters to total energy
-  if (RtcTime.valid)
-  {
-    if (lastPowerCheckTime != 0 && power > 0)
-    {
-      Energy.kWhtoday += (float)power * (Rtc.utc_time - lastPowerCheckTime) / 36;
-      EnergyUpdateToday();
-    }
-    lastPowerCheckTime = Rtc.utc_time;
+  if (timeDiff > 0 && lastTotalPower > 0) {
+    uint32_t difff = totalPower - lastTotalPower;
+
+    uint32_t xdif = difff * 8.311f;
+
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Difff %d Ws"), xdif);
+    // difff * 8.311f
+    float difff2 = CALC_POWER_WH(difff);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Difff %4_f Wh"), &difff2);
+
+    // 2 * 1000 * 100 = 0,002 kWh = 2Wh
+    // Energy.kWhtoday_delta += 2 * 1000 * 100;
+
+    Energy.kWhtoday_delta += xdif * 10; //xdif * 1000;// * 100;
+    EnergyUpdateToday();
+
+    // Energy.kWhtoday += power / 36;
+    // Energy.kWhtoday_delta += (((float)power * 10) / 36);
+
   }
+
+
 #endif
 
 }
