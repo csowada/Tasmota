@@ -423,6 +423,10 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   // Total Power
   attr_list.addAttribute(0x0B04, 0x050B, 0).setUInt(power);
 
+  // add today energy for inverter
+  attr_list.addAttributePMEM(PSTR("TodayEnergy")).setUInt(CALC_ENERGY_WH(totalEnergy));
+
+  // Add all DC channels
   attr_list.addAttributePMEM(PSTR("dc")).setStrRaw(attr_dc_side.toString(true).c_str());
 
 #ifdef USE_ENERGY_SENSOR
