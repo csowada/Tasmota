@@ -433,26 +433,13 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
   // Add power of all inverters to total energy
   if (timeDiff > 0 && lastTotalPower > 0) {
-    uint32_t difff = totalPower - lastTotalPower;
+    uint32_t totalPowerDeltaWs = CALC_POWER_WS(totalPower - lastTotalPower);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Ws to total ..."), totalPowerDeltaWs);
 
-    uint32_t xdif = difff * 8.311f;
-
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Difff %d Ws"), xdif);
-    // difff * 8.311f
-    float difff2 = CALC_POWER_WH(difff);
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Difff %4_f Wh"), &difff2);
-
-    // 2 * 1000 * 100 = 0,002 kWh = 2Wh
-    // Energy.kWhtoday_delta += 2 * 1000 * 100;
-
-    Energy.kWhtoday_delta += xdif * 10; //xdif * 1000;// * 100;
+    // convert Ws to Wh * 100
+    Energy.kWhtoday_delta += totalPowerDeltaWs / 36;
     EnergyUpdateToday();
-
-    // Energy.kWhtoday += power / 36;
-    // Energy.kWhtoday_delta += (((float)power * 10) / 36);
-
   }
-
 
 #endif
 
