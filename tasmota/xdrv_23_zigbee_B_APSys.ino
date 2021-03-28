@@ -57,15 +57,19 @@
 
 #define GET_FREQUENCE(buff, offset) 50000000.0f / getBigEndian(buff, APS_FREQUENCY + offset, 3)
 
-#define GET_TOTAL_POWER1(buff, offset, isQs1) getBigEndian(buff, isQs1 ? APS_QS1_TODAY_ENERGY_CH1 : APS_YC600_TODAY_ENERGY_CH1 + offset, 3)
-#define GET_TOTAL_POWER2(buff, offset, isQs1) getBigEndian(buff, isQs1 ? APS_QS1_TODAY_ENERGY_CH2 : APS_YC600_TODAY_ENERGY_CH2 + offset, 3)
-#define GET_TOTAL_POWER3(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH3 + offset, 3)
-#define GET_TOTAL_POWER4(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH4 + offset, 3)
+#define GET_TOTAL_ENERGY1(buff, offset, isQs1) getBigEndian(buff, isQs1 ? APS_QS1_TODAY_ENERGY_CH1 : APS_YC600_TODAY_ENERGY_CH1 + offset, 3)
+#define GET_TOTAL_ENERGY2(buff, offset, isQs1) getBigEndian(buff, isQs1 ? APS_QS1_TODAY_ENERGY_CH2 : APS_YC600_TODAY_ENERGY_CH2 + offset, 3)
+#define GET_TOTAL_ENERGY3(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH3 + offset, 3)
+#define GET_TOTAL_ENERGY4(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH4 + offset, 3)
 
-#define CALC_CURRENT_POWER(currentTotal, lastTotal, timeDiff) ((currentTotal - lastTotal) * 8.311f) / timeDiff;
-#define CALC_POWER_KWH(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600 / 1000
-#define CALC_POWER_WH(todayEnergyRaw) todayEnergyRaw * 8.311f / 3600
-#define CALC_POWER_WS(todayEnergyRaw) todayEnergyRaw * 8.311f
+// Today Energy in Ws
+#define CALC_ENERGY_WS(todayEnergyRaw) todayEnergyRaw * 8.311f
+// Today Energy in Wh
+#define CALC_ENERGY_WH(todayEnergyRaw) CALC_ENERGY_WS(todayEnergyRaw) / 3600
+// Today Energy in kWh
+#define CALC_ENERGY_KWH(todayEnergyRaw) CALC_ENERGY_WH(todayEnergyRaw) / 1000
+// Current Power in W
+#define CALC_CURRENT_POWER(currentTotal, lastTotal, timeDelta) CALC_ENERGY_WS(currentTotal - lastTotal) / timeDelta;
 
 #define GET_VOLTAGE1(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH1 : APS_YC600_VOLTAGE_CH1 + offset)) / 3.0f
 #define GET_VOLTAGE2(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH2 : APS_YC600_VOLTAGE_CH2 + offset)) / 3.0f
@@ -172,13 +176,13 @@ void Z_4Ch_EnergyMeterCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t 
   // set device to unreachable
   device.setReachable(false);
 
-  // reset ap systems total power and timestamp
+  // reset ap systems total energy and timestamp
   Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
   fchmeter.setTimeStamp(0xFFFF);
-  fchmeter.setTotalPower1(0xFFFFFFFF);
-  fchmeter.setTotalPower2(0xFFFFFFFF);
-  fchmeter.setTotalPower3(0xFFFFFFFF);
-  fchmeter.setTotalPower4(0xFFFFFFFF);
+  fchmeter.setTotalEnergy1(0xFFFFFFFF);
+  fchmeter.setTotalEnergy2(0xFFFFFFFF);
+  fchmeter.setTotalEnergy3(0xFFFFFFFF);
+  fchmeter.setTotalEnergy4(0xFFFFFFFF);
 
   // reset voltage and power
   Z_Data_Plug & plug = device.data.get<Z_Data_Plug>();
@@ -228,10 +232,10 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   }
 
   Z_attribute_list attr_dc_side;
-  uint32_t totalPower = 0;
-  uint32_t lastTotalPower = 0;
-  uint32_t timeDiff = 0;
-  uint32_t totalPowerDc = 0;
+  uint32_t totalEnergy = 0;
+  uint32_t lastTotalEnergy = 0;
+  uint32_t timeDelta = 0;
+  uint32_t totalEnergyDc = 0;
   float currentDc = .0f;
   float voltageDc = .0f;
   uint16_t activePowerDc = 0;
@@ -266,12 +270,12 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     // timestamp is smaller as before, inverter restart due to low sun?
     if (fchmeter.getTimeStamp() > timeStamp) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: Timestamp diff invalid: %d - %d"), fchmeter.getTimeStamp(), timeStamp);
-      timeDiff = 0;
+      timeDelta = 0;
     } else {
-      timeDiff = timeStamp - fchmeter.getTimeStamp();
+      timeDelta = timeStamp - fchmeter.getTimeStamp();
     }
 
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Time Diff %d"), timeDiff);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Time Diff %d"), timeDelta);
   }
   fchmeter.setTimeStamp(timeStamp);
 
@@ -303,26 +307,26 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   // *******************************************************************
   currentDc = GET_CURRENT1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   voltageDc = GET_VOLTAGE1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
-  totalPowerDc = GET_TOTAL_POWER1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
+  totalEnergyDc = GET_TOTAL_ENERGY1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("TotalPower1")).setUInt(CALC_POWER_WH(totalPowerDc));
+  attr_dc_side.addAttributePMEM(PSTR("Today1")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
   attr_dc_side.addAttributePMEM(PSTR("Current1")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage1")).setFloat(voltageDc);
 
   float calcPower = currentDc * voltageDc;
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc1 %1_f W"), &calcPower);
 
-  totalPower += totalPowerDc;
+  totalEnergy += totalEnergyDc;
   
-  if (timeDiff > 0 && fchmeter.validTotalPower1()) {
-    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower1(), timeDiff);
+  if (timeDelta > 0 && fchmeter.validTotalEnergy1()) {
+    activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy1(), timeDelta);
     if (activePowerDc > 350) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower1 too high!"));
       return;
     }
-    lastTotalPower += fchmeter.getTotalPower1();
+    lastTotalEnergy += fchmeter.getTotalEnergy1();
   }
-  fchmeter.setTotalPower1(totalPowerDc); 
+  fchmeter.setTotalEnergy1(totalEnergyDc); 
   attr_dc_side.addAttributePMEM(PSTR("ActivePower1")).setUInt(activePowerDc);
   
   // *******************************************************************
@@ -330,53 +334,52 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   // *******************************************************************
   currentDc = GET_CURRENT2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   voltageDc = GET_VOLTAGE2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
-  totalPowerDc = GET_TOTAL_POWER2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
+  totalEnergyDc = GET_TOTAL_ENERGY2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("TotalPower2")).setUInt(CALC_POWER_WH(totalPowerDc));
+  attr_dc_side.addAttributePMEM(PSTR("Today2")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
   attr_dc_side.addAttributePMEM(PSTR("Current2")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage2")).setFloat(voltageDc);
 
   calcPower = currentDc * voltageDc;
   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc2 %1_f W"), &calcPower);
 
-  totalPower += totalPowerDc;
+  totalEnergy += totalEnergyDc;
 
-  if (timeDiff > 0 && fchmeter.validTotalPower2()) {
-    activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower2(), timeDiff);
+  if (timeDelta > 0 && fchmeter.validTotalEnergy2()) {
+    activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy2(), timeDelta);
     if (activePowerDc > 350) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower2 too high!"));
       return;
     }
-    lastTotalPower += fchmeter.getTotalPower2();
+    lastTotalEnergy += fchmeter.getTotalEnergy2();
   }
-  fchmeter.setTotalPower2(totalPowerDc);
+  fchmeter.setTotalEnergy2(totalEnergyDc);
   attr_dc_side.addAttributePMEM(PSTR("ActivePower2")).setUInt(activePowerDc);
 
-  if (isQs1)
-  {
+  if (isQs1) {
     // *******************************************************************
     // **   DC Channel 3
     // *******************************************************************
     currentDc = GET_CURRENT3(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE3(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
-    totalPowerDc = GET_TOTAL_POWER3(_payload, APS_OFFSET_ZCL_PAYLOAD);
+    totalEnergyDc = GET_TOTAL_ENERGY3(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("TotalPower3")).setUInt(CALC_POWER_WH(totalPowerDc));
+    attr_dc_side.addAttributePMEM(PSTR("Today3")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
     attr_dc_side.addAttributePMEM(PSTR("Current3")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage3")).setFloat(voltageDc);
 
     calcPower = currentDc * voltageDc;
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc3 %1_f W"), &calcPower);
 
-    if (timeDiff > 0 && fchmeter.validTotalPower3()) {
-      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower3(), timeDiff);
+    if (timeDelta > 0 && fchmeter.validTotalEnergy3()) {
+      activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy3(), timeDelta);
       if (activePowerDc > 350) {
         AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower3 too high!"));
         return;
       }
-      lastTotalPower += fchmeter.getTotalPower3();
+      lastTotalEnergy += fchmeter.getTotalEnergy3();
     }
-    fchmeter.setTotalPower3(totalPowerDc);
+    fchmeter.setTotalEnergy3(totalEnergyDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower3")).setUInt(activePowerDc);
 
     // *******************************************************************
@@ -384,32 +387,32 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     // *******************************************************************
     currentDc = GET_CURRENT4(_payload, APS_OFFSET_ZCL_PAYLOAD);
     voltageDc = GET_VOLTAGE4(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
-    totalPowerDc = GET_TOTAL_POWER4(_payload, APS_OFFSET_ZCL_PAYLOAD);
+    totalEnergyDc = GET_TOTAL_ENERGY4(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("TotalPower4")).setUInt(CALC_POWER_WH(totalPowerDc));
+    attr_dc_side.addAttributePMEM(PSTR("Today4")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
     attr_dc_side.addAttributePMEM(PSTR("Current4")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage4")).setFloat(voltageDc);
 
     calcPower = currentDc * voltageDc;
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc4 %1_f W"), &calcPower);
 
-    if (timeDiff > 0 && fchmeter.validTotalPower4()) {
-      activePowerDc = CALC_CURRENT_POWER(totalPowerDc, fchmeter.getTotalPower4(), timeDiff);
+    if (timeDelta > 0 && fchmeter.validTotalEnergy4()) {
+      activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy4(), timeDelta);
       if (activePowerDc > 350) {
         AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower4 too high!"));
         return;
       }
-      lastTotalPower += fchmeter.getTotalPower4();
+      lastTotalEnergy += fchmeter.getTotalEnergy4();
     }
-    fchmeter.setTotalPower4(totalPowerDc);
+    fchmeter.setTotalEnergy4(totalEnergyDc);
     attr_dc_side.addAttributePMEM(PSTR("ActivePower4")).setUInt(activePowerDc);
   }
 
   // *******************************************************************
 
   float power = 0.0f;
-  if (timeDiff > 0 && lastTotalPower > 0) {
-    power = CALC_CURRENT_POWER(totalPower, lastTotalPower, timeDiff);
+  if (timeDelta > 0 && lastTotalEnergy > 0) {
+    power = CALC_CURRENT_POWER(totalEnergy, lastTotalEnergy, timeDelta);
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Power %2_f W"), &power);
     if (isQs1 && power > 1400 || !isQs1 && power > 700) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower too high!"));
@@ -432,12 +435,12 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   }
 
   // Add power of all inverters to total energy
-  if (timeDiff > 0 && lastTotalPower > 0) {
-    uint32_t totalPowerDeltaWs = CALC_POWER_WS(totalPower - lastTotalPower);
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Ws to total ..."), totalPowerDeltaWs);
+  if (timeDelta > 0 && lastTotalEnergy > 0) {
+    uint32_t totalEnergyWs = CALC_ENERGY_WS(totalEnergy - lastTotalEnergy);
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Ws to total ..."), totalEnergyWs);
 
     // convert Ws to Wh * 100
-    Energy.kWhtoday_delta += totalPowerDeltaWs / 36;
+    Energy.kWhtoday_delta += totalEnergyWs / 36;
     EnergyUpdateToday();
   }
 

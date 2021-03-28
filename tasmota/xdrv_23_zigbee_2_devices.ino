@@ -180,37 +180,37 @@ public:
   Z_Data_4Ch_EnergyMeter(uint8_t endpoint = 0) :
     Z_Data(Z_Data_Type::Z_4Ch_EnergyMeter, endpoint),
     time_stamp(0xFFFF),
-    total_power1(0xFFFFFFFF),
-    total_power2(0xFFFFFFFF),
-    total_power3(0xFFFFFFFF),
-    total_power4(0xFFFFFFFF)
+    total_energy1(0xFFFFFFFF),
+    total_energy2(0xFFFFFFFF),
+    total_energy3(0xFFFFFFFF),
+    total_energy4(0xFFFFFFFF)
     {}
 
   inline bool validTimeStamp(void)   const { return 0xFFFF != time_stamp; }
-  inline bool validTotalPower1(void)   const { return 0xFFFFFFFF != total_power1; }
-  inline bool validTotalPower2(void)   const { return 0xFFFFFFFF != total_power2; }
-  inline bool validTotalPower3(void)   const { return 0xFFFFFFFF != total_power3; }
-  inline bool validTotalPower4(void)   const { return 0xFFFFFFFF != total_power4; }
+  inline bool validTotalEnergy1(void)   const { return 0xFFFFFFFF != total_energy1; }
+  inline bool validTotalEnergy2(void)   const { return 0xFFFFFFFF != total_energy2; }
+  inline bool validTotalEnergy3(void)   const { return 0xFFFFFFFF != total_energy3; }
+  inline bool validTotalEnergy4(void)   const { return 0xFFFFFFFF != total_energy4; }
 
   inline uint16_t getTimeStamp(void) const { return time_stamp; }
-  inline uint32_t getTotalPower1(void) const { return total_power1; }
-  inline uint32_t getTotalPower2(void) const { return total_power2; }
-  inline uint32_t getTotalPower3(void) const { return total_power3; }
-  inline uint32_t getTotalPower4(void) const { return total_power4; }
+  inline uint32_t getTotalEnergy1(void) const { return total_energy1; }
+  inline uint32_t getTotalEnergy2(void) const { return total_energy2; }
+  inline uint32_t getTotalEnergy3(void) const { return total_energy3; }
+  inline uint32_t getTotalEnergy4(void) const { return total_energy4; }
 
   inline void setTimeStamp(uint16_t _time_stamp)  { time_stamp = _time_stamp; }
-  inline void setTotalPower1(uint32_t _total_power1)  { total_power1 = _total_power1; }
-  inline void setTotalPower2(uint32_t _total_power2)  { total_power2 = _total_power2; }
-  inline void setTotalPower3(uint32_t _total_power3)  { total_power3 = _total_power3; }
-  inline void setTotalPower4(uint32_t _total_power4)  { total_power4 = _total_power4; }
+  inline void setTotalEnergy1(uint32_t _total_energy1)  { total_energy1 = _total_energy1; }
+  inline void setTotalEnergy2(uint32_t _total_energy2)  { total_energy2 = _total_energy2; }
+  inline void setTotalEnergy3(uint32_t _total_energy3)  { total_energy3 = _total_energy3; }
+  inline void setTotalEnergy4(uint32_t _total_energy4)  { total_energy4 = _total_energy4; }
 
   static const Z_Data_Type type = Z_Data_Type::Z_4Ch_EnergyMeter;
 
   uint16_t              time_stamp;
-  uint32_t              total_power1;
-  uint32_t              total_power2;
-  uint32_t              total_power3;
-  uint32_t              total_power4;
+  uint32_t              total_energy1;
+  uint32_t              total_energy2;
+  uint32_t              total_energy3;
+  uint32_t              total_energy4;
 };
 
 /*********************************************************************************************\
