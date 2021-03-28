@@ -309,7 +309,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   voltageDc = GET_VOLTAGE1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalEnergyDc = GET_TOTAL_ENERGY1(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("Today1")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
+  attr_dc_side.addAttributePMEM(PSTR("TodayEnergy1")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
   attr_dc_side.addAttributePMEM(PSTR("Current1")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage1")).setFloat(voltageDc);
 
@@ -336,7 +336,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   voltageDc = GET_VOLTAGE2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
   totalEnergyDc = GET_TOTAL_ENERGY2(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
 
-  attr_dc_side.addAttributePMEM(PSTR("Today2")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
+  attr_dc_side.addAttributePMEM(PSTR("TodayEnergy2")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
   attr_dc_side.addAttributePMEM(PSTR("Current2")).setFloat(currentDc);
   attr_dc_side.addAttributePMEM(PSTR("Voltage2")).setFloat(voltageDc);
 
@@ -364,7 +364,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     voltageDc = GET_VOLTAGE3(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalEnergyDc = GET_TOTAL_ENERGY3(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("Today3")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy3")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
     attr_dc_side.addAttributePMEM(PSTR("Current3")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage3")).setFloat(voltageDc);
 
@@ -389,7 +389,7 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     voltageDc = GET_VOLTAGE4(_payload, APS_OFFSET_ZCL_PAYLOAD, isQs1);
     totalEnergyDc = GET_TOTAL_ENERGY4(_payload, APS_OFFSET_ZCL_PAYLOAD);
 
-    attr_dc_side.addAttributePMEM(PSTR("Today4")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy4")).setUInt(CALC_ENERGY_WH(totalEnergyDc));
     attr_dc_side.addAttributePMEM(PSTR("Current4")).setFloat(currentDc);
     attr_dc_side.addAttributePMEM(PSTR("Voltage4")).setFloat(voltageDc);
 
