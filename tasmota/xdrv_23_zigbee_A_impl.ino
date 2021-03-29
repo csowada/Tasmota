@@ -2196,6 +2196,11 @@ bool Xdrv23(uint8_t function)
         break;
     }
   }
+
+#ifdef USE_AP_SYSTEMS
+  Xdrv23_Ext(function);
+#endif
+
   return result;
 }
 

@@ -222,6 +222,12 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     return;
   }
 
+  Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
+  if (&energyMeter == nullptr) {
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter energyMeter device ..."));
+    return;
+  }
+
   if (!fchmeter.validTimeStamp()) {
     AddLog_P(LOG_LEVEL_DEBUG, PSTR("Set timeout 5mins for new device ..."));
     uint32_t timeout_timer = 300000; // 5mins (5 * 60 * 1000)
@@ -319,6 +325,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   totalEnergy += totalEnergyDc;
   
   if (timeDelta > 0 && fchmeter.validTotalEnergy1()) {
+
+    // new today energy meter
+    energyMeter.addTotalEnergy1(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy1()));
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy1b")).setUInt(energyMeter.getTotalEnergy1());
+
     activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy1(), timeDelta);
     if (activePowerDc > 350) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower1 too high!"));
@@ -346,6 +357,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   totalEnergy += totalEnergyDc;
 
   if (timeDelta > 0 && fchmeter.validTotalEnergy2()) {
+
+    // new today energy meter
+    energyMeter.addTotalEnergy2(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy2()));
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy2b")).setUInt(energyMeter.getTotalEnergy2());
+
     activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy2(), timeDelta);
     if (activePowerDc > 350) {
       AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower2 too high!"));
@@ -372,6 +388,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc3 %1_f W"), &calcPower);
 
     if (timeDelta > 0 && fchmeter.validTotalEnergy3()) {
+
+      // new today energy meter
+      energyMeter.addTotalEnergy3(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy3()));
+      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy3b")).setUInt(energyMeter.getTotalEnergy3());
+
       activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy3(), timeDelta);
       if (activePowerDc > 350) {
         AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower3 too high!"));
@@ -397,6 +418,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Powercalc4 %1_f W"), &calcPower);
 
     if (timeDelta > 0 && fchmeter.validTotalEnergy4()) {
+
+      // new today energy meter
+      energyMeter.addTotalEnergy4(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy4()));
+      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy4b")).setUInt(energyMeter.getTotalEnergy4());
+
       activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy4(), timeDelta);
       if (activePowerDc > 350) {
         AddLog_P(LOG_LEVEL_ERROR, PSTR("Error: ActivePower4 too high!"));
@@ -445,7 +471,6 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
     // convert Ws to mWh * 10
     uint32_t decamwh = (totalEnergyWs * 1000) / 36;
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Wh/10 to total ..."), decamwh);
 
     Energy.kWhtoday_delta += decamwh;
     EnergyUpdateToday();
@@ -453,6 +478,37 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 
 #endif
 
+}
+
+bool Xdrv23_Ext(uint8_t function) {
+
+  if (function == FUNC_PRE_INIT) {
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("EXTENSION INSTALLED ...."));
+  }
+
+  if (function == FUNC_EVERY_200_MSECOND) {
+
+    // check for midnight
+    if (RtcTime.valid && LocalTime() == Midnight()) {
+
+      AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("RESET ALL COUNTER AS MIDNIGHT"));
+
+      for (const auto & device0 : zigbee_devices.getDevices()) {
+
+        // get device as non const
+        Z_Device & device = zigbee_devices.getShortAddr(device0.shortaddr);        
+        Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
+        if (&energyMeter != nullptr) {
+          energyMeter.setTotalEnergy1(0);
+          energyMeter.setTotalEnergy2(0);
+          energyMeter.setTotalEnergy3(0);
+          energyMeter.setTotalEnergy4(0);
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 #endif // USE_ZIGBEE

@@ -204,6 +204,11 @@ public:
   inline void setTotalEnergy3(uint32_t _total_energy3)  { total_energy3 = _total_energy3; }
   inline void setTotalEnergy4(uint32_t _total_energy4)  { total_energy4 = _total_energy4; }
 
+  inline void addTotalEnergy1(uint32_t _total_energy1)  { if (validTotalEnergy1()) {total_energy1 += _total_energy1; } else {total_energy1 = _total_energy1; } }
+  inline void addTotalEnergy2(uint32_t _total_energy2)  { if (validTotalEnergy2()) {total_energy2 += _total_energy2; } else {total_energy2 = _total_energy2; } }
+  inline void addTotalEnergy3(uint32_t _total_energy3)  { if (validTotalEnergy3()) {total_energy3 += _total_energy3; } else {total_energy3 = _total_energy3; } }
+  inline void addTotalEnergy4(uint32_t _total_energy4)  { if (validTotalEnergy4()) {total_energy4 += _total_energy4; } else {total_energy4 = _total_energy4; } }
+
   static const Z_Data_Type type = Z_Data_Type::Z_4Ch_EnergyMeter;
 
   uint16_t              time_stamp;
