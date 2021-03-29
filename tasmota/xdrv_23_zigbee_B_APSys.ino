@@ -29,23 +29,23 @@
 
 //YC600 Byteoffset
 #define APS_YC600_TIMESTAMP 15        // 2 bytes
-#define APS_YC600_CURRENT_CH1 22      // 1.5 byte
-#define APS_YC600_VOLTAGE_CH1 24      // 1 byte
+#define APS_YC600_CURRENT_CH1 22      // 1.5 byte  (channel 1 and 2 are swapped for QS1, correct ?)
+#define APS_YC600_VOLTAGE_CH1 23      // 1.5 byte
 #define APS_YC600_CURRENT_CH2 25      // 1.5 byte
-#define APS_YC600_VOLTAGE_CH2 27      // 1 byte
+#define APS_YC600_VOLTAGE_CH2 26      // 1.5 byte
 #define APS_YC600_TODAY_ENERGY_CH1 42 // 3 bytes
 #define APS_YC600_TODAY_ENERGY_CH2 37 // 3 bytes
 
 //QS1 Byteoffset
 #define APS_QS1_TIMESTAMP 30        // 2 bytes
 #define APS_QS1_CURRENT_CH1 25      // 1.5 byte
-#define APS_QS1_VOLTAGE_CH1 15      // 1 byte
+#define APS_QS1_VOLTAGE_CH1 26      // 1.5 byte
 #define APS_QS1_CURRENT_CH2 22      // 1.5 byte
-#define APS_QS1_VOLTAGE_CH2 24      // 1 byte
+#define APS_QS1_VOLTAGE_CH2 23      // 1.5 byte
 #define APS_QS1_CURRENT_CH3 19      // 1.5 byte
-#define APS_QS1_VOLTAGE_CH3 21      // 1 byte
+#define APS_QS1_VOLTAGE_CH3 20      // 1.5 byte
 #define APS_QS1_CURRENT_CH4 16      // 1.5 byte
-#define APS_QS1_VOLTAGE_CH4 18      // 1 byte
+#define APS_QS1_VOLTAGE_CH4 17      // 1.5 byte
 #define APS_QS1_TODAY_ENERGY_CH1 39 // 3 bytes
 #define APS_QS1_TODAY_ENERGY_CH2 44 // 3 bytes
 #define APS_QS1_TODAY_ENERGY_CH3 49 // 3 bytes
@@ -71,15 +71,15 @@
 // Current Power in W
 #define CALC_CURRENT_POWER(currentTotal, lastTotal, timeDelta) CALC_ENERGY_WS(currentTotal - lastTotal) / timeDelta;
 
-#define GET_VOLTAGE1(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH1 : APS_YC600_VOLTAGE_CH1 + offset)) / 3.0f
-#define GET_VOLTAGE2(buff, offset, isQs1) (buff.get8(isQs1 ? APS_QS1_VOLTAGE_CH2 : APS_YC600_VOLTAGE_CH2 + offset)) / 3.0f
-#define GET_VOLTAGE3(buff, offset, isQs1) (buff.get8(APS_QS1_VOLTAGE_CH3 + offset)) / 3.0f
-#define GET_VOLTAGE4(buff, offset, isQs1) (buff.get8(APS_QS1_VOLTAGE_CH4 + offset)) / 3.0f
+#define GET_VOLTAGE1(buff, offset, isQs1) (buff.get16(isQs1 ? APS_QS1_VOLTAGE_CH1 : APS_YC600_VOLTAGE_CH1 + offset) >> 4) / 48.0f
+#define GET_VOLTAGE2(buff, offset, isQs1) (buff.get16(isQs1 ? APS_QS1_VOLTAGE_CH2 : APS_YC600_VOLTAGE_CH2 + offset) >> 4) / 48.0f
+#define GET_VOLTAGE3(buff, offset, isQs1) (buff.get16(APS_QS1_VOLTAGE_CH3 + offset) >> 4) / 48.0f
+#define GET_VOLTAGE4(buff, offset, isQs1) (buff.get16(APS_QS1_VOLTAGE_CH4 + offset) >> 4) / 48.0f
 
-#define GET_CURRENT1(buff, offset, isQs1) (((buff.get8(isQs1 ? APS_QS1_CURRENT_CH1 : APS_YC600_CURRENT_CH1 + offset + 1) & 0x0F) << 8) | buff.get8(isQs1 ? APS_QS1_CURRENT_CH1 : APS_YC600_CURRENT_CH1 + offset)) / 160.0f
-#define GET_CURRENT2(buff, offset, isQs1) (((buff.get8(isQs1 ? APS_QS1_CURRENT_CH2 : APS_YC600_CURRENT_CH2 + offset + 1) & 0x0F) << 8) | buff.get8(isQs1 ? APS_QS1_CURRENT_CH2 : APS_YC600_CURRENT_CH2 + offset)) / 160.0f
-#define GET_CURRENT3(buff, offset) (((buff.get8(APS_QS1_CURRENT_CH3 + 1) & 0x0F) << 8) | buff.get8(APS_QS1_CURRENT_CH3 + offset)) / 160.0f
-#define GET_CURRENT4(buff, offset) (((buff.get8(APS_QS1_CURRENT_CH4 + 1) & 0x0F) << 8) | buff.get8(APS_QS1_CURRENT_CH4 + offset)) / 160.0f
+#define GET_CURRENT1(buff, offset, isQs1) (buff.get16(isQs1 ? APS_QS1_CURRENT_CH1 : APS_YC600_CURRENT_CH1 + offset) & 0x0FFF) / 160.0f
+#define GET_CURRENT2(buff, offset, isQs1) (buff.get16(isQs1 ? APS_QS1_CURRENT_CH2 : APS_YC600_CURRENT_CH2 + offset) & 0x0FFF) / 160.0f
+#define GET_CURRENT3(buff, offset) (buff.get16(APS_QS1_CURRENT_CH3 + offset) & 0x0FFF) / 160.0f
+#define GET_CURRENT4(buff, offset) (buff.get16(APS_QS1_CURRENT_CH4 + offset) & 0x0FFF) / 160.0f
 
 #define ECU_ID 0xD8A3011B9780
 
@@ -443,8 +443,11 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     uint32_t totalEnergyWs = CALC_ENERGY_WS(totalEnergy - lastTotalEnergy);
     AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Ws to total ..."), totalEnergyWs);
 
-    // convert Ws to Wh * 100
-    Energy.kWhtoday_delta += totalEnergyWs / 36;
+    // convert Ws to mWh * 10
+    uint32_t decamwh = (totalEnergyWs * 1000) / 36;
+    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("Add %d Wh/10 to total ..."), decamwh);
+
+    Energy.kWhtoday_delta += decamwh;
     EnergyUpdateToday();
   }
 
