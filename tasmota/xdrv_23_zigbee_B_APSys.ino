@@ -177,7 +177,7 @@ void Z_4Ch_EnergyMeterCallback(uint16_t shortaddr, uint16_t groupaddr, uint16_t 
   device.setReachable(false);
 
   // reset ap systems total energy and timestamp
-  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
+  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
   fchmeter.setTimeStamp(0xFFFF);
   fchmeter.setTotalEnergy1(0xFFFFFFFF);
   fchmeter.setTotalEnergy2(0xFFFFFFFF);
@@ -216,13 +216,13 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     return;
   }
 
-  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>();
+  Z_Data_4Ch_EnergyMeter & fchmeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
   if (&fchmeter == nullptr) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter device ..."));
     return;
   }
 
-  Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
+  Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(2);
   if (&energyMeter == nullptr) {
     AddLog_P(LOG_LEVEL_ERROR, PSTR("Unable to get Z_Data_4Ch_EnergyMeter energyMeter device ..."));
     return;
@@ -359,7 +359,13 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   if (timeDelta > 0 && fchmeter.validTotalEnergy2()) {
 
     // new today energy meter
-    energyMeter.addTotalEnergy2(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy2()));
+    uint32_t a = CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy2());
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("addTotalEnergy2 %d"), a);
+
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("1 getTotalEnergy2 %d"), energyMeter.getTotalEnergy2());
+    energyMeter.addTotalEnergy2(a);
+    AddLog_P(LOG_LEVEL_ERROR, PSTR("2 getTotalEnergy2 %d"), energyMeter.getTotalEnergy2());
+
     attr_dc_side.addAttributePMEM(PSTR("TodayEnergy2b")).setUInt(energyMeter.getTotalEnergy2());
 
     activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy2(), timeDelta);
@@ -497,7 +503,7 @@ bool Xdrv23_Ext(uint8_t function) {
 
         // get device as non const
         Z_Device & device = zigbee_devices.getShortAddr(device0.shortaddr);        
-        Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(1);
+        Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(2);
         if (&energyMeter != nullptr) {
           energyMeter.setTotalEnergy1(0);
           energyMeter.setTotalEnergy2(0);
