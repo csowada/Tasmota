@@ -63,11 +63,11 @@
 #define GET_TOTAL_ENERGY4(buff, offset) getBigEndian(buff, APS_QS1_TODAY_ENERGY_CH4 + offset, 3)
 
 // Today Energy in Ws
-#define CALC_ENERGY_WS(todayEnergyRaw) todayEnergyRaw * 8.311f
+#define CALC_ENERGY_WS(todayEnergyRaw) ((todayEnergyRaw) * 8.311f)
 // Today Energy in Wh
-#define CALC_ENERGY_WH(todayEnergyRaw) CALC_ENERGY_WS(todayEnergyRaw) / 3600
+#define CALC_ENERGY_WH(todayEnergyRaw) (CALC_ENERGY_WS(todayEnergyRaw) / 3600)
 // Today Energy in kWh
-#define CALC_ENERGY_KWH(todayEnergyRaw) CALC_ENERGY_WH(todayEnergyRaw) / 1000
+#define CALC_ENERGY_KWH(todayEnergyRaw) (CALC_ENERGY_WH(todayEnergyRaw) / 1000)
 // Current Power in W
 #define CALC_CURRENT_POWER(currentTotal, lastTotal, timeDelta) CALC_ENERGY_WS(currentTotal - lastTotal) / timeDelta;
 
