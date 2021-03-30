@@ -327,8 +327,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   if (timeDelta > 0 && fchmeter.validTotalEnergy1()) {
 
     // new today energy meter
-    energyMeter.addTotalEnergy1(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy1()));
-    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy1b")).setUInt(energyMeter.getTotalEnergy1());
+    energyMeter.addTotalEnergy1(totalEnergyDc - fchmeter.getTotalEnergy1());
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy1b")).setUInt(CALC_ENERGY_WH(energyMeter.getTotalEnergy1()));
 
     activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy1(), timeDelta);
     if (activePowerDc > 350) {
@@ -359,14 +359,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
   if (timeDelta > 0 && fchmeter.validTotalEnergy2()) {
 
     // new today energy meter
-    uint32_t a = CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy2());
-    AddLog_P(LOG_LEVEL_ERROR, PSTR("addTotalEnergy2 %d"), a);
-
-    AddLog_P(LOG_LEVEL_ERROR, PSTR("1 getTotalEnergy2 %d"), energyMeter.getTotalEnergy2());
-    energyMeter.addTotalEnergy2(a);
-    AddLog_P(LOG_LEVEL_ERROR, PSTR("2 getTotalEnergy2 %d"), energyMeter.getTotalEnergy2());
-
-    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy2b")).setUInt(energyMeter.getTotalEnergy2());
+    energyMeter.addTotalEnergy2(totalEnergyDc - fchmeter.getTotalEnergy2());
+    attr_dc_side.addAttributePMEM(PSTR("TodayEnergy2b")).setUInt(CALC_ENERGY_WH(energyMeter.getTotalEnergy2()));
 
     activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy2(), timeDelta);
     if (activePowerDc > 350) {
@@ -396,8 +390,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     if (timeDelta > 0 && fchmeter.validTotalEnergy3()) {
 
       // new today energy meter
-      energyMeter.addTotalEnergy3(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy3()));
-      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy3b")).setUInt(energyMeter.getTotalEnergy3());
+      energyMeter.addTotalEnergy3(totalEnergyDc - fchmeter.getTotalEnergy3());
+      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy3b")).setUInt(CALC_ENERGY_WH(energyMeter.getTotalEnergy3()));
 
       activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy3(), timeDelta);
       if (activePowerDc > 350) {
@@ -426,8 +420,8 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
     if (timeDelta > 0 && fchmeter.validTotalEnergy4()) {
 
       // new today energy meter
-      energyMeter.addTotalEnergy4(CALC_ENERGY_WH(totalEnergyDc - fchmeter.getTotalEnergy4()));
-      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy4b")).setUInt(energyMeter.getTotalEnergy4());
+      energyMeter.addTotalEnergy4(totalEnergyDc - fchmeter.getTotalEnergy4());
+      attr_dc_side.addAttributePMEM(PSTR("TodayEnergy4b")).setUInt(CALC_ENERGY_WH(energyMeter.getTotalEnergy4()));
 
       activePowerDc = CALC_CURRENT_POWER(totalEnergyDc, fchmeter.getTotalEnergy4(), timeDelta);
       if (activePowerDc > 350) {
