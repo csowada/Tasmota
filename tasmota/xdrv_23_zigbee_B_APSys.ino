@@ -479,32 +479,40 @@ void ZCLFrame::parseAPSAttributes(Z_attribute_list& attr_list) {
 #endif
 
 }
+/**
+ * Reset all channel totals to zero at midnight
+ */
+void resetTodayTotalDevices() {
+  AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("RESET ALL COUNTER AS MIDNIGHT"));
 
+  for (const auto & device0 : zigbee_devices.getDevices()) {
+
+    // get device as non const
+    Z_Device & device = zigbee_devices.getShortAddr(device0.shortaddr);        
+    Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(2);
+    if (&energyMeter != nullptr) {
+      energyMeter.setTotalEnergy1(0);
+      energyMeter.setTotalEnergy2(0);
+      energyMeter.setTotalEnergy3(0);
+      energyMeter.setTotalEnergy4(0);
+    }
+  }
+}
+
+/*
+* Extend Xdrv23 main loop
+*/
 bool Xdrv23_Ext(uint8_t function) {
 
-  if (function == FUNC_PRE_INIT) {
-    AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("EXTENSION INSTALLED ...."));
-  }
+  // if (function == FUNC_PRE_INIT) {
+  //   AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("EXTENSION INSTALLED ...."));
+  //   resetTodayTotalDevices();
+  // }
 
-  if (function == FUNC_EVERY_200_MSECOND) {
-
+  if (function == FUNC_EVERY_250_MSECOND) {
     // check for midnight
     if (RtcTime.valid && LocalTime() == Midnight()) {
-
-      AddLog_P(LOG_LEVEL_DEBUG_MORE, PSTR("RESET ALL COUNTER AS MIDNIGHT"));
-
-      for (const auto & device0 : zigbee_devices.getDevices()) {
-
-        // get device as non const
-        Z_Device & device = zigbee_devices.getShortAddr(device0.shortaddr);        
-        Z_Data_4Ch_EnergyMeter & energyMeter = device.data.get<Z_Data_4Ch_EnergyMeter>(2);
-        if (&energyMeter != nullptr) {
-          energyMeter.setTotalEnergy1(0);
-          energyMeter.setTotalEnergy2(0);
-          energyMeter.setTotalEnergy3(0);
-          energyMeter.setTotalEnergy4(0);
-        }
-      }
+      resetTodayTotalDevices();
     }
   }
 
